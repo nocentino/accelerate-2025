@@ -73,7 +73,5 @@ SELECT
     JSON_VALUE(@response, '$.result.items[0].bytes_per_op') AS bytes_per_op
 
 
+EXEC xp_fixeddrives;
 
-
-
--- Demo 4 - Back up demo - perf numbers
