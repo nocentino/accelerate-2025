@@ -159,7 +159,7 @@ UPDATE SalesLT.Customer
 SET SalesPersonShort = REPLACE(SalesPerson, 'adventure-works\', '')
 WHERE SalesPerson IS NOT NULL;
 
-select distinct([SalesPersonShort]) as SalesPerson , count(*)
+SELECT DISTINCT([SalesPersonShort]) as SalesPerson , count(*)
 FROM [AdventureWorks2025].[SalesLT].[Customer] group by [SalesPersonShort] order by count(*) desc;
 GO
 

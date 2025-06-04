@@ -1,0 +1,1 @@
+-- Demo 4 - Using external tables to store embeddings
