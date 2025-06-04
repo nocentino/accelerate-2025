@@ -18,7 +18,7 @@ WITH
 GO
 ----------------------------------------------------------------------------------------
 
--- Step 2: Create and test an External Model pointing to our local Ollama Container ----
+-- Step 2: Create and test an External Model----
 USE [AdventureWorks2025]
 GO
 
@@ -173,7 +173,7 @@ WITH SCHEMABINDING
 AS
 RETURN (
     SELECT 1 AS AccessResult
-    WHERE @SalesPerson = USER_NAME() -- Replace USER_NAME() with your logic for identifying the user
+    WHERE @SalesPerson = USER_NAME()  -- Replace USER_NAME() with your logic for identifying the user
      OR USER_NAME() = 'dbo'           -- Allow the 'sa' user to see all rows
 );
 GO
@@ -203,14 +203,14 @@ GRANT SELECT ON SalesLT.Customer TO [shu0];
 GRANT SELECT ON SalesLT.SalesOrderHeader TO [shu0];
 GRANT SELECT ON SalesLT.SalesOrderDetail TO [shu0];
 GRANT SELECT ON SalesLT.Product TO [shu0];
---GRANT EXECUTE ON EXTERNAL MODEL::Ollama TO [shu0]; case sensitive
+--GRANT EXECUTE ON EXTERNAL MODEL::Ollama TO [shu0]; --case sensitive
 GRANT EXECUTE ON EXTERNAL MODEL::ollama TO [shu0];
 
 
 -- Test the row-level security by aggregating total sales by SalesPerson
 EXECUTE AS USER = 'shu0';
 
-DECLARE @search_text NVARCHAR(MAX) = 'Im looking for bikes or hemets sales';
+DECLARE @search_text NVARCHAR(MAX) = 'Im looking for yellow seat sales';
 DECLARE @search_vector VECTOR(768) = AI_GENERATE_EMBEDDINGS(@search_text USE MODEL ollama);
 
 SELECT 
@@ -231,5 +231,24 @@ GROUP BY
     c.SalesPersonShort
 ORDER BY 
     TotalSales DESC;
--- Revert to the original user context
+
+SELECT 
+    c.SalesPersonShort,
+    p.ProductID,
+    p.Name AS ProductName,
+    sod.SalesOrderID,
+    sod.OrderQty,
+    sod.LineTotal
+FROM 
+    [SalesLT].[Product] p
+INNER JOIN 
+    SalesLT.SalesOrderDetail sod ON p.ProductID = sod.ProductID
+INNER JOIN 
+    SalesLT.SalesOrderHeader soh ON sod.SalesOrderID = soh.SalesOrderID
+INNER JOIN 
+    SalesLT.Customer c ON soh.CustomerID = c.CustomerID
+WHERE 
+    vector_distance('cosine', @search_vector, p.embeddings) < 0.5
+ORDER BY 
+    c.SalesPersonShort, sod.SalesOrderID;
 REVERT;

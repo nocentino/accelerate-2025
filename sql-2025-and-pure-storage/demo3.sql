@@ -73,5 +73,14 @@ SELECT
     JSON_VALUE(@response, '$.result.items[0].bytes_per_op') AS bytes_per_op
 
 
-EXEC xp_fixeddrives;
-
+SELECT 
+    instance_name AS Drive,
+    counter_name AS Counter,
+    cntr_value AS LatencyMilliseconds
+FROM 
+    sys.dm_os_performance_counters
+WHERE 
+    object_name LIKE '%PhysicalDisk%' -- Filter for physical disk counters
+    AND counter_name IN ('Avg. Disk sec/Read', 'Avg. Disk sec/Write') -- Read and write latency
+ORDER BY 
+    instance_name, counter_name;
