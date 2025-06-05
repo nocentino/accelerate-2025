@@ -11,7 +11,7 @@ GO
 -- MS_XPRESS (default) compression to NUL
 BACKUP DATABASE [TPCC] 
 TO DISK = 'nul', DISK = 'nul', DISK = 'nul', DISK = 'nul'
-WITH COMPRESSION, 
+WITH COMPRESSION (ALGORITHM = MS_XPRESS), 
      STATS = 25, INIT, FORMAT, 
      DESCRIPTION = 'Compression using MS_XPRESS (default) to NUL'
 GO
@@ -103,3 +103,43 @@ FROM
     msdb.dbo.backupset bs
 ORDER BY 
     bs.backup_start_date DESC;
+
+
+-- RESTORE for No Compression Backup
+RESTORE DATABASE [TPCC_NoCompression]
+FROM 
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_NOCOMPRESSION_1.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_NOCOMPRESSION_2.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_NOCOMPRESSION_3.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_NOCOMPRESSION_4.bak'
+WITH 
+    MOVE 'TPCC' TO 'D:\SQLDATA1\TPCC_NoCompression_Data.mdf',
+    MOVE 'TPCC_Log' TO 'L:\SQLLOG\TPCC_NoCompression_Log.ldf',
+    STATS = 25, REPLACE;
+GO
+
+-- RESTORE for MS_XPRESS Compression Backup
+RESTORE DATABASE [TPCC_MS_XPRESS]
+FROM 
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MS_EXPRESS_1.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MS_EXPRESS_2.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MS_EXPRESS_3.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MS_EXPRESS_4.bak'
+WITH 
+    MOVE 'TPCC' TO 'D:\SQLDATA1\TPCC_MS_XPRESS_Data.mdf',
+    MOVE 'TPCC_Log' TO 'L:\SQLLOG\TPCC_MS_XPRESS_Log.ldf',
+    STATS = 25, REPLACE;
+GO
+
+-- RESTORE for ZSTD LOW Compression Backup
+RESTORE DATABASE [TPCC_ZSTD_LOW]
+FROM 
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC2_LOW_1.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC2_LOW_2.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC3_LOW_3.bak',
+    URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC4_LOW_4.bak'
+WITH 
+    MOVE 'TPCC' TO 'D:\SQLDATA1\TPCC_ZSTD_LOW_Data.mdf',
+    MOVE 'TPCC_Log' TO 'L:\SQLLOG\TPCC_ZSTD_LOW_Log.ldf',
+    STATS = 25, REPLACE;
+GO
