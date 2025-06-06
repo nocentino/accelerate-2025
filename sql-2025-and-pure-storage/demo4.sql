@@ -1,4 +1,4 @@
--- Demo 4 - Back up demo - perf numbers
+-- Demo 1 - Back up demo - perf numbers
 
 -- No compression to NUL 
 BACKUP DATABASE [TPCC] 

@@ -6,14 +6,23 @@
 USE [StackOverflow]
 GO
 
+--Enable REST endpoint
+sp_configure 'external rest endpoint enabled', 1;
+RECONFIGURE WITH OVERRIDE;
+
+DROP EXTERNAL MODEL ollama
+
 CREATE EXTERNAL MODEL ollama
 WITH (
-    LOCATION = 'https://model-web:443/api/embed',
+    LOCATION = 'https://model-web.example.com:443/api/embed',
     API_FORMAT = 'Ollama',
     MODEL_TYPE = EMBEDDINGS,
     MODEL = 'nomic-embed-text'
 );
 GO
+
+--print the error log
+EXEC sp_readerrorlog 0, 1
 
 -- Test the model
 PRINT 'Testing the external model by calling AI_GENERATE_EMBEDDINGS function...';
@@ -47,7 +56,7 @@ GO
 ALTER DATABASE [StackOverflow]
 ADD FILE (
     NAME = N'StackOverflowEmbeddings',
-    FILENAME = N'E:\SQLEMBEDDINGS\StackOverflowEmbeddings.ndf',
+    FILENAME = N'/var/opt/mssql/data/StackOverflowEmbeddings.ndf',
     SIZE = 100GB,       -- Initial size
     FILEGROWTH = 64MB   -- Growth increment
 ) TO FILEGROUP EmbeddingsFileGroup;
@@ -69,7 +78,7 @@ GO
 USE [StackOverflow];
 GO
 
-DECLARE @BatchSize INT = 10000;     -- Number of rows to process in each batch
+DECLARE @BatchSize INT = 1000;     -- Number of rows to process in each batch
 DECLARE @StartRow INT = 0;          -- Starting row for the current batch
 DECLARE @MaxPostID INT;             -- Maximum PostID in the Posts table
 
