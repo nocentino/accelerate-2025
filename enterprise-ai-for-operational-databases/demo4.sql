@@ -1,5 +1,4 @@
 -- Demo 4 - Using external tables to store embeddings
--- SQL
 -- Create a credential for external storage
 USE StackOverflow_Embeddings;
 GO
@@ -63,6 +62,8 @@ GO
 
 SELECT * FROM PostEmbeddingsExternal 
 
+
+
 USE StackOverflow_Embeddings
 GO
 SELECT 
@@ -74,6 +75,14 @@ GROUP BY
     YEAR(CreationDate) -- Group by the year
 ORDER BY 
     PostYear; -- Order the results by year
+
+use StackOverflow_Embeddings 
+GO
+CREATE INDEX IX_PostEmbeddings_PostID
+ON dbo.PostEmbeddings (PostID);
+GO
+CREATE INDEX IX_Posts_CreationDate
+ON dbo.Posts (CreationDate);
 
 -- Create external tables for each year of posts, this take about 3 minutes to run
 DECLARE @StartYear INT = 2008; -- Replace with the first year of posts
@@ -110,20 +119,22 @@ BEGIN
 END;
 GO
 
+
 -- Create a table to hold all records from 2022 and later
 CREATE TABLE dbo.PostEmbeddings_2022_AndLater
 (
-    PostID INT PRIMARY KEY,
+    PostID INT PRIMARY KEY CLUSTERED,
     Embedding VECTOR(768), 
     CreatedAt DATETIME2,
     UpdatedAt DATETIME2
 );
 
--- Copy all records from the PostEmbeddings table for 2022 and later into the new table, this takes about 1.25 minutes to run
+-- Copy all records from the PostEmbeddings table for 2022 and later into the new table, this takes about 30 seconds to run
 INSERT INTO dbo.PostEmbeddings_2022_AndLater (PostID, Embedding, CreatedAt, UpdatedAt)
 SELECT PostID, Embedding, CreatedAt, UpdatedAt
-FROM dbo.PostEmbeddings
-WHERE CreatedAt >= '2022-01-01'; -- Adjust the date as needed
+FROM dbo.PostEmbeddings pe INNER JOIN dbo.Posts p ON pe.PostID = p.Id
+WHERE p.CreationDate >= '2022-01-01'; -- Adjust the date as needed
+
 
 -- Drop the original PostEmbeddings table
 DROP TABLE dbo.PostEmbeddings;
@@ -163,7 +174,10 @@ UNION ALL
 SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2008
 GO
 
-
+-------------------------------------------------------------
+-- Step 5: Query the PostEmbeddings table to get the number of posts per year now that the data is 
+-- in external tables and a view combined with the new table which is on disk
+-------------------------------------------------------------
 USE StackOverflow_Embeddings
 GO
 SELECT 
@@ -175,6 +189,62 @@ GROUP BY
     YEAR(CreationDate) -- Group by the year
 ORDER BY 
     PostYear; -- Order the results by year
+
+
+------------------------------------------------------------
+-- Step 6: Create a Vector Index for faster searching
+------------------------------------------------------------
+-- Enable trace flags for vector features
+DBCC TRACEON (466, 474, 13981, -1);
+GO
+
+-- Verify trace flags are enabled
+DBCC TRACESTATUS;
+GO
+
+-- Create vector index using approximate nearest neighbors (ANN)
+CREATE VECTOR INDEX vec_idx ON dbo.PostEmbeddings_2022_AndLater([Embedding])
+WITH (
+    metric = 'cosine',
+    type = 'diskann',
+    maxdop = 8
+);
+GO
+
+
+------------------------------------------------------------
+-- Step 6: Perform a similarity search using the embeddings
+-- This query will take about 30 seconds since there is no vector index, yet
+------------------------------------------------------------
+DECLARE @QueryText NVARCHAR(MAX) = N'Find me posts about issuses with SQL Server performance'; --<---this is intentially misspelled to highlight the similarity search
+DECLARE @QueryEmbedding VECTOR(768);
+-- Generate embedding for the query text
+SET @QueryEmbedding = AI_GENERATE_EMBEDDINGS(@QueryText USE MODEL ollama);
+
+-- Perform similarity search
+SELECT TOP 10 
+    p.Id, 
+    p.Title, 
+    pe.Embedding, -- Correct column name for embeddings
+    vector_distance('cosine', @QueryEmbedding, pe.Embedding) AS SimilarityScore -- Ensure correct column reference
+FROM 
+    dbo.Posts p
+JOIN 
+    dbo.PostEmbeddings pe ON p.Id = pe.PostID
+WHERE 
+    pe.Embedding IS NOT NULL -- Ensure the embeddings column is checked
+ORDER BY 
+    SimilarityScore ASC; -- Lower cosine distance means higher similarity
+
+
+-- Query to get the size of the PostEmbeddings table
+EXEC sp_spaceused N'dbo.PostEmbeddings_2022_AndLater';
+
+
+-- Query the FlashBlade to Get the size of the PostEmbeddings External Tables
+
+
+
 
 --clean up
 DROP EXTERNAL TABLE PostEmbeddingsExternal;

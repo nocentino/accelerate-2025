@@ -1,4 +1,6 @@
 -- Demo 1 - Back up demo - perf numbers
+SELECT @@VERSION AS SQLServerVersion 
+
 
 -- No compression to NUL 
 BACKUP DATABASE [TPCC] 
@@ -20,12 +22,11 @@ GO
 BACKUP DATABASE [TPCC] 
 TO DISK = 'nul', DISK = 'nul', DISK = 'nul', DISK = 'nul'
 WITH COMPRESSION (ALGORITHM = ZSTD), 
-     MAXTRANSFERSIZE = 4194304, 
      STATS = 25, INIT, FORMAT, 
      DESCRIPTION = 'Compression using ZSTD (default level) to NUL'
 GO
 
--- No compression to S3
+-- No compression to S3...we can scale this linearly to numbers that exceeed 1TB/min
 BACKUP DATABASE [TPCC] 
 TO   URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_NOCOMPRESSION_1.bak',
      URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_NOCOMPRESSION_2.bak',
@@ -51,7 +52,7 @@ GO
 
 -- ZSTD LOW compression
 BACKUP DATABASE [TPCC] 
-TO URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC2_LOW_1.bak',
+TO   URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC2_LOW_1.bak',
      URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC2_LOW_2.bak',
      URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC3_LOW_3.bak',
      URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC4_LOW_4.bak'
@@ -63,7 +64,7 @@ GO
 
 -- ZSTD MEDIUM compression
 BACKUP DATABASE [TPCC] 
-TO URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MED_1.bak',
+TO   URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MED_1.bak',
      URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MED_2.bak',
      URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MED_3.bak',
      URL = 's3://s200.fsa.lab/aen-sql-backups/TPCC_MED_4.bak'
@@ -88,16 +89,16 @@ GO
 --
 SELECT TOP 5
     bs.database_name AS DatabaseName,
-    bs.backup_size / 1024 / 1024 AS BackupSizeMB, -- Original size in MB
-    DATEDIFF(SECOND, bs.backup_start_date, bs.backup_finish_date) AS BackupRuntimeSeconds, -- Runtime in seconds
-    bs.compressed_backup_size / 1024 / 1024 AS CompressedSizeMB, -- Compressed size in MB
+    bs.backup_size / 1024 / 1024 AS BackupSizeMB,                                           -- Original size in MB
+    DATEDIFF(SECOND, bs.backup_start_date, bs.backup_finish_date) AS BackupRuntimeSeconds,  -- Runtime in seconds
+    bs.compressed_backup_size / 1024 / 1024 AS CompressedSizeMB,                            -- Compressed size in MB
     CASE 
         WHEN bs.backup_size > 0 THEN 
-            ((bs.backup_size - bs.compressed_backup_size) * 100 / bs.backup_size) -- Compression percentage
+            ((bs.backup_size - bs.compressed_backup_size) * 100 / bs.backup_size)           -- Compression percentage
         ELSE 
             NULL
     END AS CompressionPercentage,
-    bs.description AS BackupDescription -- Backup description
+    bs.description AS BackupDescription                                                     -- Backup description
 
 FROM 
     msdb.dbo.backupset bs
@@ -143,3 +144,4 @@ WITH
     MOVE 'TPCC_Log' TO 'L:\SQLLOG\TPCC_ZSTD_LOW_Log.ldf',
     STATS = 25, REPLACE;
 GO
+-- to do drive in FB into convo harder...to show the "incredible outcome" of combining FB...with zstd

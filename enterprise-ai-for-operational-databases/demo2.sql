@@ -25,7 +25,7 @@ GO
 
 -- Create the PostEmbeddings table in the EmbeddingsFileGroup
 CREATE TABLE dbo.PostEmbeddings (
-    PostID INT NOT NULL PRIMARY KEY,                -- Foreign key to Posts table
+    PostID INT NOT NULL PRIMARY KEY CLUSTERED,      -- Foreign key to Posts table
     Embedding  VECTOR(768) NOT NULL,                -- Vector embeddings (768 dimensions)
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),  -- Timestamp for when the embedding was created
     UpdatedAt DATETIME NULL                         -- Timestamp for when the embedding was last updated
@@ -33,7 +33,7 @@ CREATE TABLE dbo.PostEmbeddings (
 GO
 
 ------------------------------------------------------------
--- Step 4: Generate embeddings for Posts table, build a chunk based off the title and the body
+-- Step 2: Generate embeddings for Posts table, using the AI_GENERATE_EMBEDDINGS function and the title column
 -- and store them in the PostEmbeddings table.
 ------------------------------------------------------------
 USE [StackOverflow_Embeddings];
@@ -73,7 +73,7 @@ END;
 GO
 
 ------------------------------------------------------------
--- Step 5: Verify the embeddings have been generated and stored correctly
+-- Step 3: Verify the embeddings have been generated and stored correctly
 ------------------------------------------------------------
 USE [StackOverflow_Embeddings];
 GO
@@ -87,8 +87,8 @@ WHERE Embedding IS NOT NULL;
 
 
 ------------------------------------------------------------
--- Step 6: Perform a similarity search using the embeddings
--- This query will take about 30 seconds since there is no vector index, yet
+-- Step 4: Perform a similarity search using the embeddings
+-- This query will take about 30 seconds since there is no vector index, yet.
 ------------------------------------------------------------
 DECLARE @QueryText NVARCHAR(MAX) = N'Find me posts about issuses with SQL Server performance'; --<---this is intentially misspelled to highlight the similarity search
 DECLARE @QueryEmbedding VECTOR(768);
@@ -111,13 +111,21 @@ ORDER BY
     SimilarityScore ASC; -- Lower cosine distance means higher similarity
 
 
+
+------------------------------------------------------------
+-- Step 5: Query the size of the PostEmbeddings table, and examine the DRR for this data set
+------------------------------------------------------------
 -- Query to get the size of the PostEmbeddings table
 EXEC sp_spaceused N'dbo.PostEmbeddings';
 
 
+-- An embedding is a vector representation of a piece of text, such as a post title or body. 
+-- It captures the semantic meaning of the text in a high-dimensional space, allowing for similarity searches and comparisons.
+-- Since they're n-dimendional floats, the size of the embeddings table is determined by the number of posts and the size of each embedding vector. 
+-- In this case, each embedding is a 768-dimensional vector, which means it requires significant storage space.
 SELECT TOP 1 * from dbo.PostEmbeddings;
 
 
---Let's examine the data reduction, for this data set its around 2.2:1
+--Let's examine the data reduction, for this data set its around 2.5:1
 open https://sn1-x90r2-f06-33.puretec.purestorage.com/storage/volumes/volume/vvol-aen-sql-25-a-1e763fbf-vg/Data-367b471f 
 

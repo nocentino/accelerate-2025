@@ -1,5 +1,7 @@
 -- Demo 3 - Using change events to drive AI outcomes
 -- Enable Change Tracking on the database
+-- https://learn.microsoft.com/en-us/sql/relational-databases/track-changes/about-change-tracking-sql-server?view=sql-server-ver16
+
 ALTER DATABASE StackOverflow_Embeddings
 SET CHANGE_TRACKING = ON
 (CHANGE_RETENTION = 2 DAYS, AUTO_CLEANUP = ON);

@@ -1,6 +1,6 @@
 -- Demo 1: Semantic Search on SQL Server 2025
 -- This demo showcases vector embeddings, semantic search, and row-level security features
-
+SELECT @@VERSION AS SQLServerVersion;
 ------------------------------------------------------------
 -- Step 1: Restore the AdventureWorks2025 database
 ------------------------------------------------------------
@@ -19,7 +19,6 @@ WITH
     NOUNLOAD,
     STATS = 5;
 GO
-
 ------------------------------------------------------------
 -- Step 2: Create and test an External Model
 ------------------------------------------------------------
@@ -59,7 +58,7 @@ ADD embeddings VECTOR(768),
     chunk NVARCHAR(2000);
 GO
 ------------------------------------------------------------
--- Step 4: Generate embeddings for product data. This will take about 1 seconds.
+-- Step 4: Generate embeddings for product data. This will take about 10 seconds.
 ------------------------------------------------------------
 UPDATE p
 SET 
