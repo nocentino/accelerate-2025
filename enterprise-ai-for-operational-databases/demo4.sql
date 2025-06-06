@@ -61,7 +61,7 @@ FROM dbo.PostEmbeddings
 GO
 
 
-select * from PostEmbeddingsExternal;
+SELECT * FROM PostEmbeddingsExternal 
 
 USE StackOverflow_Embeddings
 GO
@@ -75,7 +75,7 @@ GROUP BY
 ORDER BY 
     PostYear; -- Order the results by year
 
-
+-- Create external tables for each year of posts, this take about 3 minutes to run
 DECLARE @StartYear INT = 2008; -- Replace with the first year of posts
 DECLARE @EndYear INT = YEAR(GETDATE()); -- Current year
 DECLARE @Year INT = @StartYear;
@@ -92,7 +92,7 @@ BEGIN
         FILE_FORMAT = ParquetFileFormat -- File format
     )
     AS
-    SELECT TOP 10
+    SELECT 
         PostID,
         Embedding, -- Embedding vector from the PostEmbeddings table
         CreatedAt,
@@ -110,7 +110,71 @@ BEGIN
 END;
 GO
 
+-- Create a table to hold all records from 2022 and later
+CREATE TABLE dbo.PostEmbeddings_2022_AndLater
+(
+    PostID INT PRIMARY KEY,
+    Embedding VECTOR(768), 
+    CreatedAt DATETIME2,
+    UpdatedAt DATETIME2
+);
 
+-- Copy all records from the PostEmbeddings table for 2022 and later into the new table, this takes about 1.25 minutes to run
+INSERT INTO dbo.PostEmbeddings_2022_AndLater (PostID, Embedding, CreatedAt, UpdatedAt)
+SELECT PostID, Embedding, CreatedAt, UpdatedAt
+FROM dbo.PostEmbeddings
+WHERE CreatedAt >= '2022-01-01'; -- Adjust the date as needed
+
+-- Drop the original PostEmbeddings table
+DROP TABLE dbo.PostEmbeddings;
+GO
+
+-- Create a view to access the new table and all of the external tables
+CREATE VIEW dbo.PostEmbeddings
+AS
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2022_AndLater
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2021 
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2020
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2019
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2018
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2017
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2016
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2015
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2014
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2013
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2012
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2011
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2010
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2009
+UNION ALL
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2008
+GO
+
+
+USE StackOverflow_Embeddings
+GO
+SELECT 
+    YEAR(CreationDate) AS PostYear, -- Extract the year from the CreatedDate column
+    COUNT(*) AS PostCount -- Count the number of posts for each year
+FROM 
+    dbo.Posts INNER JOIN PostEmbeddings pe ON Posts.Id = pe.PostID -- Join Posts and PostEmbeddings tables
+GROUP BY 
+    YEAR(CreationDate) -- Group by the year
+ORDER BY 
+    PostYear; -- Order the results by year
 
 --clean up
 DROP EXTERNAL TABLE PostEmbeddingsExternal;
