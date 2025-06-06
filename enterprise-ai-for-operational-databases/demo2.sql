@@ -1,50 +1,11 @@
--- Demo 2 - Snapshot offloaded embeddings - Snapshot closer to GPUs even between data centers (even in the cloud with CBS)
+-- Demo 2 - Exploring Embeddings and Storage in SQL Server
 
-------------------------------------------------------------
--- Step 1 Create and test an External Model
-------------------------------------------------------------
-USE [StackOverflow]
-GO
-
---Enable REST endpoint
-sp_configure 'external rest endpoint enabled', 1;
-RECONFIGURE WITH OVERRIDE;
-
-DROP EXTERNAL MODEL ollama
-
-CREATE EXTERNAL MODEL ollama
-WITH (
-    LOCATION = 'https://model-web.example.com:443/api/embed',
-    API_FORMAT = 'Ollama',
-    MODEL_TYPE = EMBEDDINGS,
-    MODEL = 'nomic-embed-text'
-);
-GO
-
---print the error log
-EXEC sp_readerrorlog 0, 1
-
--- Test the model
-PRINT 'Testing the external model by calling AI_GENERATE_EMBEDDINGS function...';
-GO
-
-BEGIN
-    DECLARE @result NVARCHAR(MAX);
-    SET @result = (SELECT CONVERT(NVARCHAR(MAX), AI_GENERATE_EMBEDDINGS(N'test text' USE MODEL ollama)));
-    SELECT AI_GENERATE_EMBEDDINGS(N'test text' USE MODEL ollama) AS GeneratedEmbedding;
-
-    IF @result IS NOT NULL
-        PRINT 'Model test successful!';
-    ELSE
-        PRINT 'Model test failed. No result returned.';
-END;
-GO
 
 
 ------------------------------------------------------------
--- Step 3: Create a table to store the embeddings for the Posts table.
+-- Step 1: Create a table to store the embeddings for the Posts table.
 ------------------------------------------------------------
-USE [StackOverflow];
+USE [StackOverflow_Embeddings];
 GO
 
 -- Add a new filegroup for embeddings
@@ -56,7 +17,7 @@ GO
 ALTER DATABASE [StackOverflow]
 ADD FILE (
     NAME = N'StackOverflowEmbeddings',
-    FILENAME = N'/var/opt/mssql/data/StackOverflowEmbeddings.ndf',
+    FILENAME = N'E:\SQLEMBEDDINGS\StackOverflow_Embeddings.ndf',
     SIZE = 100GB,       -- Initial size
     FILEGROWTH = 64MB   -- Growth increment
 ) TO FILEGROUP EmbeddingsFileGroup;
@@ -75,7 +36,7 @@ GO
 -- Step 4: Generate embeddings for Posts table, build a chunk based off the title and the body
 -- and store them in the PostEmbeddings table.
 ------------------------------------------------------------
-USE [StackOverflow];
+USE [StackOverflow_Embeddings];
 GO
 
 DECLARE @BatchSize INT = 1000;     -- Number of rows to process in each batch
@@ -114,20 +75,22 @@ GO
 ------------------------------------------------------------
 -- Step 5: Verify the embeddings have been generated and stored correctly
 ------------------------------------------------------------
-USE [StackOverflow];
+USE [StackOverflow_Embeddings];
 GO
+
 -- Check the count of embeddings generated
 SELECT TOP 10 p.Id, p.Title, pe.Embedding, pe.CreatedAt
 FROM dbo.Posts p
 JOIN dbo.PostEmbeddings pe ON p.Id = pe.PostID
-WHERE Embedding IS NOT NULL
-ORDER BY pe.CreatedAt DESC;
+WHERE Embedding IS NOT NULL;
+
 
 
 ------------------------------------------------------------
 -- Step 6: Perform a similarity search using the embeddings
+-- This query will take about 30 seconds since there is no vector index, yet
 ------------------------------------------------------------
-DECLARE @QueryText NVARCHAR(MAX) = N'Find me posts about issuses with SQL Server performance';
+DECLARE @QueryText NVARCHAR(MAX) = N'Find me posts about issuses with SQL Server performance'; --<---this is intentially misspelled to highlight the similarity search
 DECLARE @QueryEmbedding VECTOR(768);
 -- Generate embedding for the query text
 SET @QueryEmbedding = AI_GENERATE_EMBEDDINGS(@QueryText USE MODEL ollama);
@@ -146,3 +109,15 @@ WHERE
     pe.Embedding IS NOT NULL -- Ensure the embeddings column is checked
 ORDER BY 
     SimilarityScore ASC; -- Lower cosine distance means higher similarity
+
+
+-- Query to get the size of the PostEmbeddings table
+EXEC sp_spaceused N'dbo.PostEmbeddings';
+
+
+SELECT TOP 1 * from dbo.PostEmbeddings;
+
+
+--Let's examine the data reduction, for this data set its around 2.2:1
+open https://sn1-x90r2-f06-33.puretec.purestorage.com/storage/volumes/volume/vvol-aen-sql-25-a-1e763fbf-vg/Data-367b471f 
+

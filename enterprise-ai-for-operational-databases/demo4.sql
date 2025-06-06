@@ -1,7 +1,7 @@
 -- Demo 4 - Using external tables to store embeddings
 -- SQL
 -- Create a credential for external storage
-USE StackOverflow;
+USE StackOverflow_Embeddings;
 GO
 
 -- Create a master key with a secure password
@@ -54,18 +54,16 @@ AS
 SELECT TOP 10
     PostID,
     Embedding, -- Embedding vector from the PostEmbeddings table
-    CreatedAt AS CreatedDate, -- Map CreatedAt to CreatedDate
-    UpdatedAt AS LastUpdatedDate -- Map UpdatedAt to LastUpdatedDate
+    CreatedAt,
+    UpdatedAt
 FROM dbo.PostEmbeddings
 --WHERE CreatedAt < DATEADD(YEAR, -1, GETDATE()); -- Filter for embeddings older than one year
 GO
 
--- Query the external table
-SELECT TOP 10 *
-FROM PostEmbeddingsExternal;
-GO
 
-USE StackOverflow
+select * from PostEmbeddingsExternal;
+
+USE StackOverflow_Embeddings
 GO
 SELECT 
     YEAR(CreationDate) AS PostYear, -- Extract the year from the CreatedDate column
@@ -78,21 +76,6 @@ ORDER BY
     PostYear; -- Order the results by year
 
 
-SELECT 
-    YEAR(p.CreationDate) AS PostYear, -- Extract the year from the CreationDate column
-    COUNT(*) AS TotalPosts -- Count the number of posts with embeddings
-FROM 
-    dbo.Posts p
-INNER JOIN 
-    dbo.PostEmbeddings pe ON p.Id = pe.PostID -- Use the correct column names
-WHERE 
-    p.CreationDate IS NOT NULL -- Ensure valid creation dates
-    AND pe.Embedding IS NOT NULL -- Ensure valid embeddings
-GROUP BY 
-    YEAR(p.CreationDate) -- Group by year
-ORDER BY 
-    PostYear; -- Order by year
-
 DECLARE @StartYear INT = 2008; -- Replace with the first year of posts
 DECLARE @EndYear INT = YEAR(GETDATE()); -- Current year
 DECLARE @Year INT = @StartYear;
@@ -102,20 +85,19 @@ WHILE @Year <= @EndYear
 BEGIN
     -- Generate the CETAS statement for the current year
     SET @SQL = N'
-    CREATE EXTERNAL TABLE PostArchive_' + CAST(@Year AS NVARCHAR(4)) + N'
+    CREATE EXTERNAL TABLE PostEmbeddings_' + CAST(@Year AS NVARCHAR(4)) + N'
     WITH (
-        LOCATION = ''/posts_archive/' + CAST(@Year AS NVARCHAR(4)) + N'/'', -- Path for the year
+        LOCATION = ''/PostEmbeddings_Archive/' + CAST(@Year AS NVARCHAR(4)) + N'/'', -- Path for the year
         DATA_SOURCE = ExternalStorageSource, -- External data source
         FILE_FORMAT = ParquetFileFormat -- File format
     )
     AS
-    SELECT 
+    SELECT TOP 10
         PostID,
-        Title,
-        Body,
-        CreationDate,
-        LastActivityDate
-    FROM dbo.Posts
+        Embedding, -- Embedding vector from the PostEmbeddings table
+        CreatedAt,
+        UpdatedAt
+    FROM dbo.PostEmbeddings INNER JOIN dbo.Posts ON PostEmbeddings.PostID = Posts.Id
     WHERE YEAR(CreationDate) = ' + CAST(@Year AS NVARCHAR(4)) + N';
     ';
 
@@ -130,10 +112,29 @@ GO
 
 
 
-
 --clean up
 DROP EXTERNAL TABLE PostEmbeddingsExternal;
 DROP EXTERNAL DATA SOURCE ExternalStorageSource;
 DROP EXTERNAL FILE FORMAT ParquetFileFormat;
 DROP DATABASE SCOPED CREDENTIAL ExternalStorageCredential;
 DROP MASTER KEY;
+
+DECLARE @StartYear INT = 2008; -- Replace with the first year of posts
+DECLARE @EndYear INT = YEAR(GETDATE()); -- Current year
+DECLARE @Year INT = @StartYear;
+DECLARE @SQL NVARCHAR(MAX);
+
+WHILE @Year <= @EndYear
+BEGIN
+    -- Generate the DROP EXTERNAL TABLE statement for the current year
+    SET @SQL = N'DROP EXTERNAL TABLE PostEmbeddings_' + CAST(@Year AS NVARCHAR(4)) + N';';
+
+    -- Execute the DROP statement
+    EXEC sp_executesql @SQL;
+
+    -- Move to the next year
+    SET @Year = @Year + 1;
+    PRINT 'Dropped external table for year ' + CAST(@Year - 1 AS NVARCHAR(4));
+END;
+GO
+
