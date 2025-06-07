@@ -18,7 +18,7 @@ DECLARE @ret INT, @response NVARCHAR(MAX), @AuthToken NVARCHAR(100), @MyHeaders 
     Pure Storage's RESTful API enables seamless integration with SQL Server for automated operations.
 */
 EXEC @ret = sp_invoke_external_rest_endpoint
-    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.36/login',
+    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.43/login',
     @headers = N'{"api-token":"3b078aa4-94a8-68da-8e7b-04aec357f678"}',
     @response = @response OUTPUT;
 
@@ -67,7 +67,7 @@ ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = ON
     and have zero performance impact - ideal for production database environments.
 */
 EXEC @ret = sp_invoke_external_rest_endpoint
-    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.36/protection-group-snapshots',
+    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.43/protection-group-snapshots',
     @headers = @MyHeaders,
     @payload = N'{"source_names":"aen-sql-25-a-pg"}',
     @response = @response OUTPUT;
@@ -100,6 +100,21 @@ ELSE
         ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF
         PRINT 'Error in REST call, snapshot backup failed. Database unsuspended.'
     END
+
+EXEC @ret = sp_invoke_external_rest_endpoint
+ @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.43/protection-group-snapshots/tags/batch', --/protection-group-snapshots-tags-batch
+ @headers = @MyHeaders,
+ @payload = N'[{
+                    "copyable": true,
+                    "key": "environment",
+                    "value": "production",
+                    "resource": { 
+                        "name": "aen-sql-25-a-pg.28" 
+                    }
+                }]',
+
+@response = @response OUTPUT;
+PRINT 'Tag Response: ' + @response
 
 ------------------------------------------------------------
 -- Step 7: Review SQL Server error logs to verify operation

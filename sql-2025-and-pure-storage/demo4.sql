@@ -183,7 +183,7 @@ GO
 /*
     Restore database from MS_XPRESS compression backup on Pure Storage FlashBlade.
     Even with traditional compression methods, Pure Storage's performance ensures
-    optimal restore times for business-critical systems.
+    optimal restore times for business-critical systems. However, this method is CPU bound.
 */
 RESTORE DATABASE [TPCC_MS_XPRESS]
 FROM 
