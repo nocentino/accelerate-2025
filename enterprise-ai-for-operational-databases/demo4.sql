@@ -76,7 +76,7 @@ GROUP BY
 ORDER BY 
     PostYear; -- Order the results by year
 
-use StackOverflow_Embeddings 
+USE StackOverflow_Embeddings 
 GO
 CREATE INDEX IX_PostEmbeddings_PostID
 ON dbo.PostEmbeddings (PostID);

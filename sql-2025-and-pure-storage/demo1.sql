@@ -1,8 +1,10 @@
 -- Demo 1: Semantic Search on SQL Server 2025
 -- This demo showcases vector embeddings, semantic search, and row-level security features
 SELECT @@VERSION AS SQLServerVersion;
+
 ------------------------------------------------------------
 -- Step 1: Restore the AdventureWorks2025 database
+-- https://github.com/nocentino/ollama-sql-faststart/
 ------------------------------------------------------------
 ALTER DATABASE [AdventureWorks2025] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
