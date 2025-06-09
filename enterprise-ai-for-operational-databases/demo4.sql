@@ -236,6 +236,8 @@ GO
     Verify all data remains accessible through the view.
     Pure Storage's hybrid architecture ensures high performance for both
     hot data on FlashArray and warm/cold data on FlashBlade.
+    Notice the MAXDOP option to optimize parallel processing driving IO from FlashBlade in Parallel
+    and also reading from FlashArray for the most recent data.
 */
 USE StackOverflow_Embeddings
 GO
@@ -247,7 +249,8 @@ FROM
 GROUP BY 
     YEAR(CreationDate)
 ORDER BY 
-    PostYear;
+    PostYear
+OPTION (MAXDOP 16);
 
 ------------------------------------------------------------
 -- Step 10: Optimize vector search with vector indexing
