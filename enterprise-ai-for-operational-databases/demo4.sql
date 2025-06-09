@@ -116,28 +116,7 @@ ORDER BY
     PostYear;
 
 ------------------------------------------------------------
--- Step 6: Optimize tables with indexes before data tiering
-------------------------------------------------------------
-/*
-    Create indexes to optimize join performance.
-    Pure Storage's high IOPS capabilities ensure index creation completes
-    rapidly even on tables with complex vector data types.
-*/
-CREATE INDEX IX_Posts_CreationDate_Id
-ON dbo.Posts (CreationDate, Id)
-INCLUDE (Title); -- Include any columns commonly queried with this pattern
-GO
-
-CREATE INDEX IX_PostEmbeddings_PostID
-ON dbo.PostEmbeddings (PostID);
-GO
-
-CREATE INDEX IX_Posts_CreationDate
-ON dbo.Posts (CreationDate);
-GO
-
-------------------------------------------------------------
--- Step 7: Implement year-based tiering to external storage
+-- Step 6: Implement year-based tiering to external storage
 ------------------------------------------------------------
 /*
     Create external tables for each year of posts.
@@ -180,7 +159,7 @@ END;
 GO
 
 ------------------------------------------------------------
--- Step 8: Create optimized storage for recent data
+-- Step 7: Create optimized storage for recent data
 ------------------------------------------------------------
 /*
     Create a table to hold recent data (2022 and later) for optimal performance.
@@ -210,7 +189,7 @@ DROP TABLE dbo.PostEmbeddings;
 GO
 
 ------------------------------------------------------------
--- Step 9: Create a unified view across all data sources
+-- Step 8: Create a unified view across all data sources
 ------------------------------------------------------------
 /*
     Create a view to provide transparent access across all data sources.
@@ -251,7 +230,7 @@ SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2008
 GO
 
 ------------------------------------------------------------
--- Step 10: Verify data accessibility post-migration
+-- Step 9: Verify data accessibility post-migration
 ------------------------------------------------------------
 /*
     Verify all data remains accessible through the view.
@@ -271,7 +250,7 @@ ORDER BY
     PostYear;
 
 ------------------------------------------------------------
--- Step 11: Optimize vector search with vector indexing
+-- Step 10: Optimize vector search with vector indexing
 ------------------------------------------------------------
 /*
     Enable trace flags required for vector features.
@@ -299,7 +278,7 @@ WITH (
 GO
 
 ------------------------------------------------------------
--- Step 12: Test semantic search performance
+-- Step 11: Test semantic search performance
 ------------------------------------------------------------
 /*
     Perform a similarity search across all data.
@@ -327,7 +306,7 @@ ORDER BY
     SimilarityScore ASC;
 
 ------------------------------------------------------------
--- Step 13: Analyze storage efficiency
+-- Step 12: Analyze storage efficiency
 ------------------------------------------------------------
 /*
     Check the size of the hot data table.
@@ -344,7 +323,7 @@ EXEC sp_spaceused N'dbo.PostEmbeddings_2022_AndLater';
 */
 
 ------------------------------------------------------------
--- Step 14: Clean up resources (for demo purposes)
+-- Step 13: Clean up resources (for demo purposes)
 ------------------------------------------------------------
 -- Drop external table resources
 DROP EXTERNAL TABLE PostEmbeddingsExternal;

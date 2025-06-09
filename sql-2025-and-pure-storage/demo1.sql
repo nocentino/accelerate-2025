@@ -219,7 +219,7 @@ GRANT SELECT ON SalesLT.Customer TO [shu0];
 GRANT SELECT ON SalesLT.SalesOrderHeader TO [shu0];
 GRANT SELECT ON SalesLT.SalesOrderDetail TO [shu0];
 GRANT SELECT ON SalesLT.Product TO [shu0];
-GRANT EXECUTE ON EXTERNAL MODEL::ollama TO [shu0]; -- Allow user to generate embeddings against our model
+GRANT EXECUTE ON EXTERNAL MODEL::Ollama TO [shu0]; -- Allow user to generate embeddings against our model
 GO
 
 -- Test as shu0 user - should only see data for shu0
