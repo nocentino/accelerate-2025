@@ -302,9 +302,9 @@ SELECT TOP 10
 FROM 
     dbo.Posts p
 JOIN 
-    dbo.PostEmbeddings pe ON p.Id = pe.PostID
+    dbo.PostEmbeddings pe ON p.Id = pe.PostID AND p.CreationDate > '2023-01-01' -- Filter for recent data
 WHERE 
-    pe.Embedding IS NOT NULL
+    pe.Embedding IS NOT NULL 
 ORDER BY 
     SimilarityScore ASC;
 

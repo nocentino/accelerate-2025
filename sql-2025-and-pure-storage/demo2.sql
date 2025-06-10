@@ -1,5 +1,12 @@
 -- Demo 2: Using REST to take FlashArray snapshots
 -- This demo showcases SQL Server 2025's native integration with Pure Storage FlashArray for near-instant snapshots
+/*
+PREREQUISITES:
+- SQL Server 2025 or later
+- 'external rest endpoint enabled' server configuration option
+- Valid API token with at least 'Storage Admin' permissions on the Pure Storage FlashArray
+- Protection group already configured on the Pure Storage array
+*/
 ------------------------------------------------------------
 -- Step 1: Enable REST endpoint in SQL Server
 ------------------------------------------------------------
@@ -18,7 +25,7 @@ DECLARE @ret INT, @response NVARCHAR(MAX), @AuthToken NVARCHAR(100), @MyHeaders 
     Pure Storage's RESTful API enables seamless integration with SQL Server for automated operations.
 */
 EXEC @ret = sp_invoke_external_rest_endpoint
-    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.43/login',
+    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/login',
     @headers = N'{"api-token":"3b078aa4-94a8-68da-8e7b-04aec357f678"}',
     @response = @response OUTPUT;
 
@@ -67,7 +74,7 @@ ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = ON
     and have zero performance impact - ideal for production database environments.
 */
 EXEC @ret = sp_invoke_external_rest_endpoint
-    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.43/protection-group-snapshots',
+    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots',
     @headers = @MyHeaders,
     @payload = N'{"source_names":"aen-sql-25-a-pg"}',
     @response = @response OUTPUT;
@@ -90,31 +97,95 @@ SET @SnapshotName = JSON_VALUE(@response, '$.result.items[0].name')
     Pure's integration with SQL Server enables metadata-only backups, reducing traditional backup windows
     from hours to seconds while maintaining full recoverability through the Pure Storage snapshot.
 */
+
+-- Generate dynamic filename with instance name, database name, backup type and date
+DECLARE @InstanceName NVARCHAR(128) = REPLACE(@@SERVERNAME, '\', '_');
+DECLARE @DatabaseName NVARCHAR(128) = 'TPCC-4T';
+DECLARE @BackupType NVARCHAR(20) = 'SNAPSHOT';
+DECLARE @DateStamp NVARCHAR(20) = REPLACE(CONVERT(NVARCHAR, GETDATE(), 112) + '_' + REPLACE(CONVERT(NVARCHAR, GETDATE(), 108), ':', ''), ' ', '_');
+DECLARE @BackupFileName NVARCHAR(255) = @InstanceName + '_' + @DatabaseName + '_' + @BackupType + '_' + @DateStamp + '.bkm';
+DECLARE @BackupUrl NVARCHAR(512) = 's3://s200.fsa.lab/aen-sql-backups/' + @BackupFileName;
+PRINT 'Backup File Name: ' + @BackupFileName
+
 if ( @ret = 0 ) --is using 200 (OK) from @response
-    BEGIN
-        BACKUP DATABASE [TPCC-4T] TO DISK='SnapshotBack.bkm' WITH METADATA_ONLY, MEDIADESCRIPTION=@SnapshotName
+    BEGIN 
+        BACKUP DATABASE [@DatabaseName] TO URL = @BackupUrl WITH METADATA_ONLY, MEDIADESCRIPTION = @SnapshotName;
         PRINT 'Snapshot backup successful. Snapshot Name: ' + @SnapshotName
+        PRINT 'Backup file created: ' + @BackupUrl
+
+        -- Update the protection-group-snapshot with comprehensive tags
+        DECLARE @TagPayload NVARCHAR(MAX);
+
+        -- Build a comprehensive payload with all important backup values
+        SET @TagPayload = N'[
+            {
+                "copyable": true,
+                "key": "BackupFileName",
+                "value": "' + @BackupFileName + '",
+                "resource": { 
+                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
+                }
+            },
+            {
+                "copyable": true,
+                "key": "DatabaseName",
+                "value": "' + @DatabaseName + '",
+                "resource": { 
+                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
+                }
+            },
+            {
+                "copyable": true,
+                "key": "SQLInstanceName",
+                "value": "' + @InstanceName + '",
+                "resource": { 
+                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
+                }
+            },
+            {
+                "copyable": true,
+                "key": "BackupTimestamp",
+                "value": "' + @DateStamp + '",
+                "resource": { 
+                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
+                }
+            },
+            {
+                "copyable": true,
+                "key": "BackupType",
+                "value": "' + @BackupType + '",
+                "resource": { 
+                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
+                }
+            },
+            {
+                "copyable": true,
+                "key": "BackupUrl",
+                "value": "' + @BackupUrl + '",
+                "resource": { 
+                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
+                }
+            }
+        ]';
+
+        PRINT 'Tag Payload: ' + @TagPayload
+
+        -- Apply the tags to the snapshot
+        EXEC @ret = sp_invoke_external_rest_endpoint
+        @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots/tags/batch',
+        @headers = @MyHeaders,
+        @payload = @TagPayload,
+        @response = @response OUTPUT;
+
+        PRINT 'Tag Response: ' + @response;
+
     END
 ELSE 
     BEGIN
-        ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF
+        ALTER DATABASE [@DatabaseName] SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF
         PRINT 'Error in REST call, snapshot backup failed. Database unsuspended.'
     END
 
-EXEC @ret = sp_invoke_external_rest_endpoint
- @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.43/protection-group-snapshots/tags/batch', --/protection-group-snapshots-tags-batch
- @headers = @MyHeaders,
- @payload = N'[{
-                    "copyable": true,
-                    "key": "environment",
-                    "value": "production",
-                    "resource": { 
-                        "name": "aen-sql-25-a-pg.28" 
-                    }
-                }]',
-
-@response = @response OUTPUT;
-PRINT 'Tag Response: ' + @response
 
 ------------------------------------------------------------
 -- Step 7: Review SQL Server error logs to verify operation
