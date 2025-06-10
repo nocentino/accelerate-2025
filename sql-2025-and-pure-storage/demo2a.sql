@@ -121,14 +121,6 @@ if ( @ret = 0 ) --is using 200 (OK) from @response
         SET @TagPayload = N'[
                 {
                     "copyable": true,
-                    "key": "BackupFileName",
-                    "value": "' + @BackupFileName + '",
-                    "resource": { 
-                        "name": "' + @SnapshotName + '"
-                    }
-                },
-                {
-                    "copyable": true,
                     "key": "DatabaseName",
                     "value": "' + @DatabaseName + '",
                     "resource": { 
@@ -200,15 +192,4 @@ EXEC xp_readerrorlog 0, 1, NULL, NULL, NULL, NULL, N'desc'
 EXEC sp_cycle_errorlog
 
 
-------------------------------------------------------------
--- Step 8: Get a listing of all snapshots in the protection group by database names
-------------------------------------------------------------
-DECLARE @ProtectionGroup NVARCHAR(100) = 'aen-sql-25-a-pg';
-DECLARE @FullUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots?filter=tags(''default'',''SQLInstanceName'')=''aen-sql-25-a'' and tags(''default'',''DatabaseName'')=''TPCC-4T''';
-EXEC @ret = sp_invoke_external_rest_endpoint
-    @url = @FullUrl,
-    @headers = @MyHeaders,
-    @method = N'GET',  -- Explicitly specify the GET method
-    @response = @response OUTPUT;
-
-PRINT 'Tag Response: ' + @response;
+GO
