@@ -1,4 +1,14 @@
-
+-- Demo 2b: Retrieving and Managing FlashArray Snapshots
+-- This demo showcases SQL Server 2025's ability to query and use existing Pure Storage FlashArray snapshots
+-- This is not a production script, but rather a demonstration of the capabilities of SQL Server 2025 and Pure Storage FlashArray integration.
+/*
+PREREQUISITES:
+- SQL Server 2025 or later
+- 'external rest endpoint enabled' server configuration option
+- Valid API token with at least 'Storage Admin' permissions on the Pure Storage FlashArray
+- Protection group snapshots already existing on the Pure Storage array
+- Metadata-only backups previously created for the snapshots
+*/
 ------------------------------------------------------------
 -- Step 1: Get a listing of all snapshots in the protection group by database names
 ------------------------------------------------------------
