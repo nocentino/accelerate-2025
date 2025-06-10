@@ -1,4 +1,4 @@
--- Demo 2b: Retrieving and Managing FlashArray Snapshots
+-- Demo 2b: Retrieving and Managing FlashArray Snapshots via REST
 -- This demo showcases SQL Server 2025's ability to query and use existing Pure Storage FlashArray snapshots
 -- This is not a production script, but rather a demonstration of the capabilities of SQL Server 2025 and Pure Storage FlashArray integration.
 /*

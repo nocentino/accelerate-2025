@@ -7,6 +7,7 @@ PREREQUISITES:
 - 'external rest endpoint enabled' server configuration option
 - Valid API token with at least 'Storage Admin' permissions on the Pure Storage FlashArray
 - Protection group already configured on the Pure Storage array
+- Purity REST API version 2.44 or later
 */
 ------------------------------------------------------------
 -- Step 1: Enable REST endpoint in SQL Server
