@@ -98,15 +98,42 @@ SELECT
     Pure Storage's consistently low latency often reveals that performance bottlenecks
     exist elsewhere in the stack, not at the storage layer.
 */
+
+-- Aggregate I/O statistics by storage volume for user databases only
 SELECT 
-    instance_name AS Drive,
-    counter_name AS Counter,
-    cntr_value AS LatencyMilliseconds
+    -- Extract volume information (drive letter/mount point)
+    LEFT(mf.physical_name, 1) AS VolumeLetter,
+    
+    -- Calculate aggregated latencies by volume
+    CASE 
+        WHEN SUM(vfs.num_of_reads) > 0 THEN SUM(vfs.io_stall_read_ms) * 1.0 / SUM(vfs.num_of_reads)
+        ELSE NULL
+    END AS AvgReadLatencyMS,
+    
+    CASE 
+        WHEN SUM(vfs.num_of_writes) > 0 THEN SUM(vfs.io_stall_write_ms) * 1.0 / SUM(vfs.num_of_writes)
+        ELSE NULL
+    END AS AvgWriteLatencyMS,
+    
+    CASE 
+        WHEN (SUM(vfs.num_of_reads) + SUM(vfs.num_of_writes)) > 0 
+        THEN (SUM(vfs.io_stall_read_ms) + SUM(vfs.io_stall_write_ms)) * 1.0 / 
+             (SUM(vfs.num_of_reads) + SUM(vfs.num_of_writes))
+        ELSE NULL
+    END AS AvgOverallLatencyMS
 FROM 
-    sys.dm_os_performance_counters
-WHERE 
-    object_name LIKE '%PhysicalDisk%' -- Filter for physical disk counters
-    AND counter_name IN ('Avg. Disk sec/Read', 'Avg. Disk sec/Write') -- Read and write latency
+    sys.dm_io_virtual_file_stats(NULL, NULL) AS vfs
+JOIN 
+    sys.master_files AS mf ON vfs.database_id = mf.database_id AND vfs.file_id = mf.file_id
+JOIN
+    sys.databases d ON vfs.database_id = d.database_id
+WHERE
+    d.database_id > 4 -- Skip system databases by ID
+    AND d.name NOT IN ('master', 'model', 'msdb', 'tempdb') -- Explicit exclusion
+    AND d.is_distributor = 0  -- Skip distributor database
+    AND d.source_database_id IS NULL  -- Skip database snapshots
+GROUP BY 
+    LEFT(mf.physical_name, 1) -- Group by volume
 ORDER BY 
-    instance_name, counter_name;
-GO
+    -- Order volumes by overall latency to highlight potential issues
+    AvgOverallLatencyMS DESC;

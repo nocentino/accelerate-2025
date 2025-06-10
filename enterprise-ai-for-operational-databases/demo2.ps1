@@ -28,6 +28,7 @@ Import-Module PureStoragePowerShellSDK2
 
 
 # Declare variables
+$ArrayName                = 'sn1-x90r2-f06-33.puretec.purestorage.com'                                     # Name of FlashArray
 $TargetSQLServer          = 'aen-sql-25-b'                                     # Name of target SQL Server
 $ProtectionGroupName      = 'aen-sql-25-a-pg'                                  # Protection Group name in the FlashArray
 $TargetDiskSerialNumber1  = '6000c29e73f02b12e4f076c41a268853'                 # Target Disk Serial Number - ex: Data volume

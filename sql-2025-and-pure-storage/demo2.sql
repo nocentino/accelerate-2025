@@ -1,5 +1,6 @@
 -- Demo 2: Using REST to take FlashArray snapshots
 -- This demo showcases SQL Server 2025's native integration with Pure Storage FlashArray for near-instant snapshots
+-- This is not a production script, but rather a demonstration of the capabilities of SQL Server 2025 and Pure Storage FlashArray integration.
 /*
 PREREQUISITES:
 - SQL Server 2025 or later
@@ -109,7 +110,7 @@ PRINT 'Backup File Name: ' + @BackupFileName
 
 if ( @ret = 0 ) --is using 200 (OK) from @response
     BEGIN 
-        BACKUP DATABASE [@DatabaseName] TO URL = @BackupUrl WITH METADATA_ONLY, MEDIADESCRIPTION = @SnapshotName;
+        BACKUP DATABASE [TPCC-4T] TO URL = @BackupUrl WITH METADATA_ONLY, MEDIADESCRIPTION = @SnapshotName;
         PRINT 'Snapshot backup successful. Snapshot Name: ' + @SnapshotName
         PRINT 'Backup file created: ' + @BackupUrl
 
@@ -118,62 +119,63 @@ if ( @ret = 0 ) --is using 200 (OK) from @response
 
         -- Build a comprehensive payload with all important backup values
         SET @TagPayload = N'[
-            {
-                "copyable": true,
-                "key": "BackupFileName",
-                "value": "' + @BackupFileName + '",
-                "resource": { 
-                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
+                {
+                    "copyable": true,
+                    "key": "BackupFileName",
+                    "value": "' + @BackupFileName + '",
+                    "resource": { 
+                        "name": "' + @SnapshotName + '"
+                    }
+                },
+                {
+                    "copyable": true,
+                    "key": "DatabaseName",
+                    "value": "' + @DatabaseName + '",
+                    "resource": { 
+                        "name": "' + @SnapshotName + '"
+                    }
+                },
+                {
+                    "copyable": true,
+                    "key": "SQLInstanceName",
+                    "value": "' + @InstanceName + '",
+                    "resource": { 
+                        "name": "' + @SnapshotName + '"
+                    }
+                },
+                {
+                    "copyable": true,
+                    "key": "BackupTimestamp",
+                    "value": "' + @DateStamp + '",
+                    "resource": { 
+                        "name": "' + @SnapshotName + '"
+                    }
+                },
+                {
+                    "copyable": true,
+                    "key": "BackupType",
+                    "value": "' + @BackupType + '",
+                    "resource": { 
+                        "name": "' + @SnapshotName + '"
+                    }
+                },
+                {
+                    "copyable": true,
+                    "key": "BackupUrl",
+                    "value": "' + @BackupUrl + '",
+                    "resource": { 
+                        "name": "' + @SnapshotName + '"
+                    }
                 }
-            },
-            {
-                "copyable": true,
-                "key": "DatabaseName",
-                "value": "' + @DatabaseName + '",
-                "resource": { 
-                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
-                }
-            },
-            {
-                "copyable": true,
-                "key": "SQLInstanceName",
-                "value": "' + @InstanceName + '",
-                "resource": { 
-                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
-                }
-            },
-            {
-                "copyable": true,
-                "key": "BackupTimestamp",
-                "value": "' + @DateStamp + '",
-                "resource": { 
-                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
-                }
-            },
-            {
-                "copyable": true,
-                "key": "BackupType",
-                "value": "' + @BackupType + '",
-                "resource": { 
-                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
-                }
-            },
-            {
-                "copyable": true,
-                "key": "BackupUrl",
-                "value": "' + @BackupUrl + '",
-                "resource": { 
-                    "name": "aen-sql-25-a-pg.' + @SnapshotName + '"
-                }
-            }
-        ]';
+            ]';
 
-        PRINT 'Tag Payload: ' + @TagPayload
+        PRINT 'Tag Payload: ' + @TagPayload;
 
-        -- Apply the tags to the snapshot
+        -- Apply the tags to the protection group snapshot
         EXEC @ret = sp_invoke_external_rest_endpoint
         @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots/tags/batch',
         @headers = @MyHeaders,
+        @method = N'PUT',  -- Explicitly specify the POST method
         @payload = @TagPayload,
         @response = @response OUTPUT;
 
@@ -182,7 +184,7 @@ if ( @ret = 0 ) --is using 200 (OK) from @response
     END
 ELSE 
     BEGIN
-        ALTER DATABASE [@DatabaseName] SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF
+        ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF
         PRINT 'Error in REST call, snapshot backup failed. Database unsuspended.'
     END
 
@@ -197,4 +199,16 @@ EXEC xp_readerrorlog 0, 1, NULL, NULL, NULL, NULL, N'desc'
 --rollover the errorlog 
 EXEC sp_cycle_errorlog
 
-GO
+
+------------------------------------------------------------
+-- Step 8: Get a listing of all snapshots in the protection group by database names
+------------------------------------------------------------
+DECLARE @ProtectionGroup NVARCHAR(100) = 'aen-sql-25-a-pg';
+DECLARE @FullUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots?filter=tags(''default'',''SQLInstanceName'')=''aen-sql-25-a'' and tags(''default'',''DatabaseName'')=''TPCC-4T''';
+EXEC @ret = sp_invoke_external_rest_endpoint
+    @url = @FullUrl,
+    @headers = @MyHeaders,
+    @method = N'GET',  -- Explicitly specify the GET method
+    @response = @response OUTPUT;
+
+PRINT 'Tag Response: ' + @response;
