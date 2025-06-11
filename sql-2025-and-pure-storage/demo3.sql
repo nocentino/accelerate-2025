@@ -4,7 +4,7 @@
 -- Step 1: Initialize variables and authenticate with Pure Storage FlashArray
 ------------------------------------------------------------
 DECLARE @ret INT, @response NVARCHAR(MAX), @AuthToken NVARCHAR(100), @MyHeaders NVARCHAR(1000);
-DECLARE @VolumeName NVARCHAR(100) = 'vvol-aen-sql-25-a-1e763fbf-vg/Data-acc37bc2';
+DECLARE @VolumeName NVARCHAR(100) = 'vvol-aen-sql-25-a-1e763fbf-vg/Data-83782b36';
 
 /*
     Using an API token with read permissions, connect to the array to log in.
@@ -12,7 +12,7 @@ DECLARE @VolumeName NVARCHAR(100) = 'vvol-aen-sql-25-a-1e763fbf-vg/Data-acc37bc2
     Pure Storage's authentication process is simple yet secure, enabling easy programmatic access.
 */
 EXEC @ret = sp_invoke_external_rest_endpoint
-    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.36/login',
+    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/login',
     @headers = N'{"api-token":"3b078aa4-94a8-68da-8e7b-04aec357f678"}',
     @response = @response OUTPUT;
 
@@ -40,7 +40,7 @@ PRINT 'Successfully logged in to FlashArray';
     Pure Storage provides granular, real-time performance data with sub-millisecond precision,
     enabling deep insight into storage behavior without additional monitoring tools.
 */
-DECLARE @FullUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.36/volumes/performance?names=' + REPLACE(@VolumeName, '/', '%2F');
+DECLARE @FullUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/volumes/performance?names=' + REPLACE(@VolumeName, '/', '%2F')
   
 EXEC @ret = sp_invoke_external_rest_endpoint
     @url = @FullUrl,

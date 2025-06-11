@@ -58,12 +58,14 @@ PRINT 'Headers: ' + @MyHeaders
 */
 
 
-DECLARE @ProtectionGroup NVARCHAR(100) = 'aen-sql-25-a-pg';
-DECLARE @FullUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots?filter=tags(''default'',''SQLInstanceName'')=''aen-sql-25-a'' and tags(''default'',''DatabaseName'')=''TPCC-4T''&sort=created-';
+DECLARE @ProtectionGroup NVARCHAR(255) = 'aen-sql-25-a-pg';
+DECLARE @APIEndpoint NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots';
+DECLARE @TagFilter NVARCHAR(MAX)   = N'?filter=tags(''default'',''SQLInstanceName'')=''aen-sql-25-a'' and tags(''default'',''DatabaseName'')=''TPCC-4T''&sort=created-';
+DECLARE @FullUrl NVARCHAR(MAX) = @APIEndpoint + @TagFilter;
 EXEC @ret = sp_invoke_external_rest_endpoint
     @url = @FullUrl,
     @headers = @MyHeaders,
-    @method = N'GET',  -- Explicitly specify the GET method
+    @method = N'GET', 
     @response = @response OUTPUT;
 
 PRINT 'Tag Response: ' + @response;
@@ -73,16 +75,16 @@ PRINT 'Tag Response: ' + @response;
     Pure Storage's well-structured JSON API enables simple extraction of 
     snapshot metadata using SQL Server's built-in JSON functions.
 */
-DECLARE @FirstSnapshotName NVARCHAR(100);
-SET @FirstSnapshotName = JSON_VALUE(@response, '$.result.items[0].name');
-PRINT 'First Snapshot Name: ' + @FirstSnapshotName;
+DECLARE @MostRecentSnapshotName NVARCHAR(100);
+SET @MostRecentSnapshotName = JSON_VALUE(@response, '$.result.items[0].name');
+PRINT 'Most Recent Snapshot Name: ' + @MostRecentSnapshotName;
 
 /*
     Retrieve detailed tag information for the selected snapshot.
     Pure Storage's comprehensive tagging system allows SQL Server to maintain
     a complete record of backup details without needing additional tables or tracking.
 */
-DECLARE @SnapshotUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots/tags?resource_names=' + @FirstSnapshotName;
+DECLARE @SnapshotUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots/tags?resource_names=' + @MostRecentSnapshotName;
 EXEC @ret = sp_invoke_external_rest_endpoint
     @url = @SnapshotUrl,
     @headers = @MyHeaders,
@@ -90,6 +92,43 @@ EXEC @ret = sp_invoke_external_rest_endpoint
     @response = @response OUTPUT;
 
 PRINT 'Snapshot Tags Response: ' + @response;
+
+
+/*
+    Parse the snapshot tags response to show all tag information.
+    Pure Storage's comprehensive tagging system provides rich metadata
+    for each snapshot, enabling advanced filtering and management.
+*/
+DECLARE @items NVARCHAR(MAX) = JSON_QUERY(@response, '$.result.items');
+
+-- Step 3: Use OPENJSON to iterate, then JSON_VALUE to extract each field
+WITH Flattened AS (
+    SELECT 
+        JSON_VALUE(item.value, '$.context.name') AS ContextName,
+        JSON_VALUE(item.value, '$.namespace') AS Namespace,
+        JSON_VALUE(item.value, '$.resource.name') AS ResourceName,
+        JSON_VALUE(item.value, '$.resource.id') AS ResourceId,
+        JSON_VALUE(item.value, '$.key') AS TagKey,
+        JSON_VALUE(item.value, '$.value') AS TagValue,
+        JSON_VALUE(item.value, '$.copyable') AS Copyable
+    FROM OPENJSON(@items) AS item
+)
+SELECT *
+FROM (
+    SELECT *
+    FROM Flattened
+) AS SourceTable
+PIVOT (
+    MAX(TagValue)
+    FOR TagKey IN (
+        [DatabaseName],
+        [SQLInstanceName],
+        [BackupTimestamp],
+        [BackupType],
+        [BackupUrl]
+    )
+) AS PivotTable;
+------------------------------------------------------------
 
 /*
     Extract the backup URL from the snapshot tags.
@@ -109,7 +148,7 @@ WHERE tag_key = 'BackupUrl';
 PRINT 'Backup URL: ' + @SnapshotBackupUrl;
 
 ------------------------------------------------------------
--- Step 9: Verify backup metadata by reading backup header
+-- Step 3: Verify backup metadata by reading backup header
 ------------------------------------------------------------
 /*
     Read the backup header from the metadata-only backup file.

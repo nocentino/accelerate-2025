@@ -3,11 +3,11 @@
 -- This is not a production script, but rather a demonstration of the capabilities of SQL Server 2025 and Pure Storage FlashArray integration.
 /*
 PREREQUISITES:
-- SQL Server 2025 or later
-- 'external rest endpoint enabled' server configuration option
-- Valid API token with at least 'Storage Admin' permissions on the Pure Storage FlashArray
-- Protection group already configured on the Pure Storage array
-- Purity REST API version 2.44 or later
+    - SQL Server 2025 or later
+    - 'external rest endpoint enabled' server configuration option
+    - Valid API token with at least 'Storage Admin' permissions on the Pure Storage FlashArray
+    - Protection Group already configured on the Pure Storage array
+    - Purity REST API version 2.44 or later
 */
 ------------------------------------------------------------
 -- Step 1: Enable REST endpoint in SQL Server
@@ -68,7 +68,7 @@ PRINT 'Headers: ' + @MyHeaders
 ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = ON
 
 ------------------------------------------------------------
--- Step 5: Create storage-level snapshot using Pure Storage FlashArray
+-- Step 5: Create storage-level Protectiion Group snapshot using Pure Storage FlashArray
 ------------------------------------------------------------
 /*
     Next call the REST endpoint to take a snapshot backup of the database.
@@ -191,6 +191,9 @@ EXEC xp_readerrorlog 0, 1, NULL, NULL, NULL, NULL, N'desc'
 
 --rollover the errorlog 
 EXEC sp_cycle_errorlog
+
+
+--ANTHONY GO OPEN UP POSTMAN AND SHOW EVERYONE ALL THE TAGS THE ARRAY FOR ALL PG SNAPSHOTS
 
 
 GO
