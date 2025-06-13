@@ -27,7 +27,7 @@ GO
 USE [AdventureWorks2025]
 GO
 
-CREATE EXTERNAL MODEL Ollama
+CREATE EXTERNAL MODEL ollama
 WITH (
     LOCATION = 'https://model-web:443/api/embed',
     API_FORMAT = 'Ollama',

@@ -172,7 +172,7 @@ CREATE TABLE dbo.PostEmbeddings_2022_AndLater
     Embedding VECTOR(768), 
     CreatedAt DATETIME2,
     UpdatedAt DATETIME2
-);
+) ON EmbeddingsFileGroup; -- Specify the filegroup;
 
 /*
     Copy recent records from the original table.
@@ -282,6 +282,7 @@ GO
 
 ------------------------------------------------------------
 -- Step 11: Test semantic search performance
+-- CHANGE CONNECTION TO AEN-SQL-25-B BEFORE RUNNING THIS
 ------------------------------------------------------------
 /*
     Perform a similarity search across all data.
@@ -302,7 +303,7 @@ SELECT TOP 10
 FROM 
     dbo.Posts p
 JOIN 
-    dbo.PostEmbeddings pe ON p.Id = pe.PostID AND p.CreationDate > '2023-01-01' -- Filter for recent data
+    dbo.PostEmbeddings pe ON p.Id = pe.PostID 
 WHERE 
     pe.Embedding IS NOT NULL 
 ORDER BY 
