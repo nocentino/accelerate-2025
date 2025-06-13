@@ -253,7 +253,34 @@ ORDER BY
 OPTION (MAXDOP 16);
 
 ------------------------------------------------------------
--- Step 10: Optimize vector search with vector indexing
+-- Step 10: Analyze storage efficiency
+------------------------------------------------------------
+/*
+    Check the size of the hot data table.
+    Pure Storage's data reduction technologies typically achieve 2.5:1 or better
+    data reduction for vector embeddings, significantly reducing storage costs.
+*/
+
+
+
+-- Check the size of the new table, which should be significantly smaller than the original PostEmbeddings table
+EXEC sp_spaceused N'dbo.PostEmbeddings_2022_AndLater';
+GO
+
+-- Shrink the file to reclaim space after the migration
+DBCC SHRINKFILE (N'StackOverflowEmbeddings' , 2888)
+GO
+
+-- Go check the space on the FlashArray and the FlashBlade
+
+/*
+    The total storage footprint for embeddings is optimized by:
+    1. Pure FlashArray's data reduction for hot data (recent embeddings)
+    2. Pure FlashBlade's efficient object storage for cold data (archived embeddings)
+    3. The transparent data virtualization provided by SQL Server's external tables
+*/
+------------------------------------------------------------
+-- Step 11: Optimize vector search with vector indexing
 ------------------------------------------------------------
 /*
     Enable trace flags required for vector features.
@@ -281,7 +308,7 @@ WITH (
 GO
 
 ------------------------------------------------------------
--- Step 11: Test semantic search performance
+-- Step 12: Test semantic search performance
 -- CHANGE CONNECTION TO AEN-SQL-25-B BEFORE RUNNING THIS
 ------------------------------------------------------------
 /*
@@ -289,7 +316,7 @@ GO
     Pure Storage's architecture ensures consistent performance for complex
     vector operations even when data spans multiple storage tiers.
 */
-DECLARE @QueryText NVARCHAR(MAX) = N'Find me posts about issuses with SQL Server performance';
+DECLARE @QueryText NVARCHAR(MAX) = N'Find me posts about issuses with SQL Server performance'; --<---this is intentionally misspelled to highlight the similarity search
 DECLARE @QueryEmbedding VECTOR(768);
 -- Generate embedding for the query text
 SET @QueryEmbedding = AI_GENERATE_EMBEDDINGS(@QueryText USE MODEL ollama);
@@ -309,22 +336,7 @@ WHERE
 ORDER BY 
     SimilarityScore ASC;
 
-------------------------------------------------------------
--- Step 12: Analyze storage efficiency
-------------------------------------------------------------
-/*
-    Check the size of the hot data table.
-    Pure Storage's data reduction technologies typically achieve 3:1 or better
-    data reduction for vector embeddings, significantly reducing storage costs.
-*/
-EXEC sp_spaceused N'dbo.PostEmbeddings_2022_AndLater';
 
-/*
-    The total storage footprint for embeddings is optimized by:
-    1. Pure FlashArray's data reduction for hot data (recent embeddings)
-    2. Pure FlashBlade's efficient object storage for cold data (archived embeddings)
-    3. The transparent data virtualization provided by SQL Server's external tables
-*/
 
 ------------------------------------------------------------
 -- Step 13: Clean up resources (for demo purposes)
