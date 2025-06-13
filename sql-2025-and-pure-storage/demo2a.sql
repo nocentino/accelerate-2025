@@ -68,7 +68,7 @@ PRINT 'Headers: ' + @MyHeaders
 ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = ON
 
 ------------------------------------------------------------
--- Step 5: Create storage-level Protectiion Group snapshot using Pure Storage FlashArray
+-- Step 5: Create storage-level Protection Group snapshot using Pure Storage FlashArray
 ------------------------------------------------------------
 /*
     Next call the REST endpoint to take a snapshot backup of the database.
