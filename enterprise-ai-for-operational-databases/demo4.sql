@@ -268,7 +268,7 @@ EXEC sp_spaceused N'dbo.PostEmbeddings_2022_AndLater';
 GO
 
 -- Shrink the file to reclaim space after the migration
-DBCC SHRINKFILE (N'StackOverflowEmbeddings' , 2888)
+DBCC SHRINKFILE (N'StackOverflowEmbeddings' , 2695)
 GO
 
 -- Go check the space on the FlashArray and the FlashBlade
@@ -367,3 +367,4 @@ BEGIN
     PRINT 'Dropped external table for year ' + CAST(@Year - 1 AS NVARCHAR(4));
 END;
 GO
+

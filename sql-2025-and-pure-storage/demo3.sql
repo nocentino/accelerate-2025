@@ -4,7 +4,7 @@
 -- Step 1: Initialize variables and authenticate with Pure Storage FlashArray
 ------------------------------------------------------------
 DECLARE @ret INT, @response NVARCHAR(MAX), @AuthToken NVARCHAR(100), @MyHeaders NVARCHAR(1000);
-DECLARE @VolumeName NVARCHAR(100) = 'vvol-aen-sql-25-a-1e763fbf-vg/Data-83782b36';
+DECLARE @VolumeName NVARCHAR(100) = 'vvol-aen-sql-25-a-1e763fbf-vg/Data-acc37bc2';
 
 /*
     Using an API token with read permissions, connect to the array to log in.
