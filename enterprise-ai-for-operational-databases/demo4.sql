@@ -188,6 +188,9 @@ WHERE p.CreationDate >= '2022-01-01';
 DROP TABLE dbo.PostEmbeddings;
 GO
 
+--Rename the new table to the original name for compatibility
+EXEC sp_rename 'dbo.PostEmbeddings_2022_AndLater', 'PostEmbeddings';
+GO
 ------------------------------------------------------------
 -- Step 8: Create a unified view across all data sources
 ------------------------------------------------------------
@@ -196,9 +199,9 @@ GO
     Pure Storage's consistent performance across FlashArray and FlashBlade
     ensures seamless query execution regardless of data location.
 */
-CREATE VIEW dbo.PostEmbeddings
+CREATE VIEW dbo.PostEmbeddings_All
 AS
-SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2022_AndLater
+SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings
 UNION ALL
 SELECT PostID, Embedding, CreatedAt, UpdatedAt FROM dbo.PostEmbeddings_2021 
 UNION ALL
@@ -245,7 +248,7 @@ SELECT
     YEAR(CreationDate) AS PostYear,
     COUNT(*) AS PostCount
 FROM 
-    dbo.Posts INNER JOIN PostEmbeddings pe ON Posts.Id = pe.PostID
+    dbo.Posts INNER JOIN PostEmbeddings_All pe ON Posts.Id = pe.PostID
 GROUP BY 
     YEAR(CreationDate)
 ORDER BY 
@@ -264,7 +267,7 @@ OPTION (MAXDOP 16);
 
 
 -- Check the size of the new table, which should be significantly smaller than the original PostEmbeddings table
-EXEC sp_spaceused N'dbo.PostEmbeddings_2022_AndLater';
+EXEC sp_spaceused N'dbo.PostEmbeddings';
 GO
 
 -- Shrink the file to reclaim space after the migration
