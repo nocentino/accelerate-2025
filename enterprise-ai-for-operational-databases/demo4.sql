@@ -350,13 +350,21 @@ SELECT TOP 10
 FROM 
     dbo.Posts p
 JOIN 
-    dbo.PostEmbeddings pe ON p.Id = pe.PostID 
+    dbo.PostEmbeddings_All pe ON p.Id = pe.PostID 
 WHERE 
     pe.Embedding IS NOT NULL 
 ORDER BY 
     SimilarityScore ASC;
 GO
 
+
+/*
+    This query retrieves the top 10 posts similar to the query text,
+    leveraging the vector index for efficient similarity search.
+    The results are ordered by similarity score, with lower scores indicating higher similarity.
+
+    This is only showing the data from the PostEmbeddings table, which is the most recent data.
+*/
 DECLARE @QueryText NVARCHAR(MAX) = N'Find me posts about issuses with SQL Server performance'; --<---this is intentionally misspelled to highlight the similarity search
 DECLARE @QueryEmbedding VECTOR(768);
 
