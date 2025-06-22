@@ -1,81 +1,120 @@
 # SQL Server 2025 and Pure Storage Integration Demos
 
-This repository contains a collection of demonstration scripts showcasing SQL Server 2025's new AI capabilities combined with Pure Storage infrastructure. These demos highlight various features including vector embeddings, semantic search, change tracking for AI operations, and efficient external storage management.
-
-## Demos Overview
-
-### Demo 1: Semantic Search on SQL Server 2025
-- Vector embeddings with external AI models
-- Semantic search using cosine similarity
-- Vector indexing for faster performance
-- Row-level security integration with AI workloads
-
-### Demo 2a and 2b: FlashArray Snapshot Management
-- Creating and managing Pure Storage FlashArray snapshots via T-SQL
-- REST API integration for snapshot operations
-- Snapshot metadata tagging and retrieval
-- Metadata-only backup integration
-
-### Demo 3: Performance Correlation Between SQL Server and Pure Storage
-- Combining FlashArray metrics with SQL Server DMVs
-- Correlating storage performance with database performance
-- Identifying bottlenecks across the storage stack
-
-### Demo 4: External Tables for Embedding Storage
-- Using Pure Storage FlashBlade for tiering vector embeddings
-- Configuring external data sources with S3-compatible storage
-- Implementing data tiering strategies for AI workloads
-- Optimizing vector search across tiered storage
-
-## Prerequisites
-
-- SQL Server 2025 with AI features enabled
-- Pure Storage FlashArray and/or FlashBlade
-- Properly configured network connectivity between SQL Server and Pure Storage
-- Appropriate API tokens with sufficient permissions
-- External model service (Ollama running on model-web server)
-- Sample databases (AdventureWorks2025, StackOverflow_Embeddings)
-
-## Usage
-
-1. **Setup:**
-   - Configure SQL Server with appropriate permissions
-   - Enable external REST endpoints: `sp_configure 'external rest endpoint enabled', 1;`
-   - Enable trace flags for vector operations: `DBCC TRACEON (466, 474, 13981, -1);`
-
-2. **Run the demos:**
-   - Execute each demo script sequentially
-   - Review the comments for detailed explanation of each step
-   - Observe the integration between SQL Server and Pure Storage
-
-3. **Demo-specific notes:**
-   - Demo 1: Requires Ollama model server for embedding generation
-   - Demo 2: Requires valid Pure Storage API token
-   - Demo 3: Shows correlation between SQL Server DMVs and Pure Storage metrics
-   - Demo 4: Demonstrates tiering strategies for large embedding datasets
-
-## Key Features Demonstrated
-
-- **Vector Operations:** Creating, storing and searching embedding vectors
-- **AI Integration:** Using external models with SQL Server
-- **Pure Storage Integration:** REST API calls, snapshot management, performance monitoring
-- **Enterprise Data Management:** Data tiering, archiving, and high-performance access
-- **Security:** Row-level security with AI workloads
+This repository contains a collection of demonstrations showcasing SQL Server 2025's powerful AI capabilities combined with Pure Storage's high-performance infrastructure. These demos span from vector search and embeddings to data tiering, snapshot management, and performance optimization techniques.
 
 ## Repository Structure
 
 ```
-/sql-2025-and-pure-storage/
-  ├── demo1.sql       # Semantic search capabilities
-  ├── demo2a.sql      # Creating FlashArray snapshots
-  ├── demo2b.sql      # Managing FlashArray snapshots
-  ├── demo3.sql       # Performance correlation analysis
-  ├── demo4.sql       # External table configurations
-  └── README.md       # This documentation file
+accelerate-2025/
+│
+├── enterprise-ai-for-operational-databases/
+│   ├── demo2.sql - Exploring Embeddings and Storage in SQL Server
+│   ├── demo3.sql - Using change events to drive AI outcomes
+│   └── demo4.sql - Using external tables to store embeddings
+│
+└── sql-2025-and-pure-storage/
+    ├── demo1.sql - Semantic Search on SQL Server 2025
+    ├── demo2a.sql - Using REST to take FlashArray snapshots
+    ├── demo2b.sql - Retrieving and Managing FlashArray Snapshots
+    ├── demo3.sql - Combining FlashArray, DMVs, and performance data
+    └── demo4.sql - Backup Performance with ZSTD Compression
 ```
 
-## Additional Resources
+## Enterprise AI for Operational Databases
 
-- [SQL Server 2025 Documentation](https://learn.microsoft.com/en-us/sql/sql-server/)
-- [Pure Storage FlashArray REST API Guide](https://support.purestorage.com/bundle/m_purityfa_rest_api/page/FlashArray/PurityFA/Purity_FA_REST_API/topics/reference/r_flasharray_rest_api_reference_guides.html)
-- [Vector Search in SQL Server](https://learn.microsoft.com/en-us/sql/relational-databases/vectors/vector-overview)
+### Demo 2: Exploring Embeddings and Storage in SQL Server
+- Creating tables to store vector embeddings for StackOverflow posts
+- Setting up dedicated filegroups for embedding data
+- Generating embeddings with AI_GENERATE_EMBEDDINGS
+- Performing similarity searches using vector distance functions
+- Leveraging Pure Storage's data reduction for embeddings (3.5:1 average)
+
+### Demo 3: Using Change Events to Drive AI Outcomes
+- Implementing Change Tracking to detect modified data
+- Creating stored procedures to automatically update embeddings when source data changes
+- Maintaining synchronization logs to track change versions
+- Benefiting from Pure Storage's performance for real-time AI updates
+
+### Demo 4: Using External Tables to Store Embeddings
+- Configuring S3-compatible object storage with Pure FlashBlade
+- Implementing data tiering strategies for embeddings
+- Creating external tables for historical data
+- Optimizing recent data access with in-database storage
+- Providing a unified view across all data sources
+- Vector indexing for optimized search performance
+- Year-based partitioning for efficient data management
+
+## SQL Server 2025 and Pure Storage
+
+### Demo 1: Semantic Search on SQL Server 2025
+- Creating and testing external embedding models
+- Adding vector columns to relational tables
+- Generating embeddings for product data
+- Performing semantic searches with vector distance functions
+- Creating vector indexes for faster searches
+- Implementing row-level security with AI workloads
+
+### Demo 2a: Using REST to Take FlashArray Snapshots
+- Authenticating with Pure Storage FlashArray via REST API
+- Using SQL Server's SUSPEND_FOR_SNAPSHOT_BACKUP feature
+- Creating storage-level protection group snapshots
+- Creating metadata-only backups referencing Pure Storage snapshots
+- Tagging snapshots with comprehensive backup information
+- Error handling and verification of snapshot creation
+
+### Demo 2b: Retrieving and Managing FlashArray Snapshots
+- Querying existing snapshots using REST API
+- Filtering snapshots by SQL instance and database name
+- Extracting snapshot metadata from tags
+- Using JSON functions to parse and display snapshot information
+- Reading backup headers from metadata-only backup files
+
+### Demo 3: Combining FlashArray, DMVs, and Performance Data
+- Correlating Pure Storage metrics with SQL Server performance data
+- Retrieving volume performance metrics via REST API
+- Analyzing I/O statistics from sys.dm_io_virtual_file_stats
+- Calculating volume-level latencies for reads and writes
+- Comparing SQL Server's view with Pure Storage's metrics
+
+### Demo 4: Backup Performance with ZSTD Compression
+- Comparing backup performance with different compression algorithms
+- Testing ZSTD compression at different levels (LOW, MEDIUM, HIGH)
+- Backing up to Pure Storage FlashBlade via S3
+- Analyzing backup compression ratios and performance
+- Performing restores from compressed and uncompressed backups
+
+## Prerequisites
+
+- **SQL Server 2025** with AI features enabled
+- **Pure Storage FlashArray and/or FlashBlade**
+  - FlashArray for high-performance transactional workloads
+  - FlashBlade for S3-compatible object storage
+- **Network connectivity** between SQL Server and Pure Storage
+- **API tokens** with appropriate permissions for Pure Storage REST API
+- **External model service** (Ollama running on model-web server)
+- **S3 credentials** for FlashBlade access
+- **Sample databases** (AdventureWorks2025, StackOverflow_Embeddings, TPCC-4T)
+- **Server configuration**:
+  - External REST endpoint enabled: `sp_configure 'external rest endpoint enabled', 1;`
+  - Vector feature trace flags: `DBCC TRACEON (466, 474, 13981, -1);`
+  - PolyBase export enabled for external tables: `sp_configure 'allow polybase export', 1;`
+
+## Key Features Demonstrated
+
+- **Vector Operations:** Creating, storing, and searching embedding vectors
+- **Pure Storage Integration:** REST API operations, snapshot management, performance monitoring
+- **Enterprise Data Management:** Data tiering, backup compression, and high-performance access
+- **AI-Enhanced Operations:** Change tracking with automatic AI updates, semantic search
+- **Performance Optimization:** Index creation, data placement, and hybrid storage strategies
+- **Security:** Row-level security with vector search capabilities
+
+## Pure Storage Key Benefits
+
+- **High Performance:** Sub-millisecond latency for database operations
+- **Data Reduction:** Typically 2.5-3.5:1 for vector embeddings
+- **Snapshot Efficiency:** Near-instant, zero-performance-impact snapshots
+- **Backup & Recovery:** High-throughput S3 endpoints for rapid backup/restore
+- **Hybrid Architecture:** Optimal data placement across FlashArray and FlashBlade
+- **REST API Integration:** Comprehensive automation capabilities
+- **Scalability:** Seamlessly scale from small to multi-petabyte deployments
+
