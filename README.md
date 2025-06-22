@@ -22,20 +22,20 @@ accelerate-2025/
 
 ## Session - Accelerate Enterprise AI with Your SQL and Oracle Operational Databases
 
-### Demo 2: Exploring Embeddings and Storage in SQL Server - [Video](https://youtu.be/lS3gzzG2rMs)
+### Demo 2: Exploring Embeddings and Storage in SQL Server - [Video](https://youtu.be/lS3gzzG2rMs) | [Code](enterprise-ai-for-operational-databases/demo2.sql)
 - Creating tables to store vector embeddings for StackOverflow posts
 - Setting up dedicated filegroups for embedding data
 - Generating embeddings with `AI_GENERATE_EMBEDDINGS`
 - Performing similarity searches using vector distance functions
 - Leveraging Pure Storage's data reduction for embeddings (3.5:1 average)
 
-### Demo 3: Using Change Events to Drive AI Outcomes - [Video](https://youtu.be/-D1nHtjWM5w)
+### Demo 3: Using Change Events to Drive AI Outcomes - [Video](https://youtu.be/-D1nHtjWM5w) | [Code](enterprise-ai-for-operational-databases/demo3.sql)
 - Implementing Change Tracking to detect modified data
 - Creating stored procedures to automatically update embeddings when source data changes
 - Maintaining synchronization logs to track change versions
 - Benefiting from Pure Storage's performance for real-time AI updates
 
-### Demo 4: Using External Tables to Store Embeddings - [Video](https://youtu.be/5nJ0gi1KW4U)
+### Demo 4: Using External Tables to Store Embeddings - [Video](https://youtu.be/5nJ0gi1KW4U) | [Code](enterprise-ai-for-operational-databases/demo4.sql)
 - Configuring S3-compatible object storage with Pure FlashBlade
 - Implementing data tiering strategies for embeddings
 - Creating external tables for historical data
@@ -47,7 +47,7 @@ accelerate-2025/
 ## Session - SQL Server 2025 & Pure Storage: AI, Performance, and Pure Storage Optimization
 
 
-### Demo 1: Semantic Search on SQL Server 2025 - [Video](https://youtu.be/U3P_-0Mkxxg)
+### Demo 1: Semantic Search on SQL Server 2025 - [Video](https://youtu.be/U3P_-0Mkxxg) | [Code](sql-2025-and-pure-storage/demo1.sql)
 - Creating and testing external embedding models
 - Adding vector columns to relational tables
 - Generating embeddings for product data
@@ -55,7 +55,7 @@ accelerate-2025/
 - Creating vector indexes for faster searches
 - Implementing row-level security with AI workloads
 
-### Demo 2a: Using REST to Take FlashArray Snapshots - [Video](https://youtu.be/7pEB6kWjVPg)
+### Demo 2a: Using REST to Take FlashArray Snapshots - [Video](https://youtu.be/7pEB6kWjVPg) | [Code](sql-2025-and-pure-storage/demo2a.sql)
 - Authenticating with Pure Storage FlashArray via REST API
 - Using SQL Server's `SUSPEND_FOR_SNAPSHOT_BACKUP` feature
 - Creating storage-level protection group snapshots
@@ -63,21 +63,21 @@ accelerate-2025/
 - Tagging snapshots with comprehensive backup information
 - Error handling and verification of snapshot creation
 
-### Demo 2b: Retrieving and Managing FlashArray Snapshots - [Video](https://youtu.be/7pEB6kWjVPg?si=ls2rQFaBx_ErQ45j&t=138)
+### Demo 2b: Retrieving and Managing FlashArray Snapshots - [Video](https://youtu.be/7pEB6kWjVPg?si=ls2rQFaBx_ErQ45j&t=138) | [Code](sql-2025-and-pure-storage/demo2b.sql)
 - Querying existing snapshots using REST API
 - Filtering snapshots by SQL instance and database name
 - Extracting snapshot metadata from tags
 - Using JSON functions to parse and display snapshot information
 - Reading backup headers from metadata-only backup files
 
-### Demo 3: Combining FlashArray, DMVs, and Performance Data - [Video](https://youtu.be/CDhWxbgEy4A)
+### Demo 3: Combining FlashArray, DMVs, and Performance Data - [Video](https://youtu.be/CDhWxbgEy4A) | [Code](sql-2025-and-pure-storage/demo3.sql)
 - Correlating Pure Storage metrics with SQL Server performance data
 - Retrieving volume performance metrics via REST API
 - Analyzing I/O statistics from `sys.dm_io_virtual_file_stats`
 - Calculating volume-level latencies for reads and writes
 - Comparing SQL Server's view with Pure Storage's metrics
 
-### Demo 4: Backup Performance with ZSTD Compression - [Video](https://youtu.be/ct_ATivNqkU)
+### Demo 4: Backup Performance with ZSTD Compression - [Video](https://youtu.be/ct_ATivNqkU) | [Code](sql-2025-and-pure-storage/demo4.sql)
 - Comparing backup performance with different compression algorithms
 - Testing ZSTD compression at different levels (LOW, MEDIUM, HIGH)
 - Backing up to Pure Storage FlashBlade via S3
