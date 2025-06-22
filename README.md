@@ -19,7 +19,6 @@ This repository contains a collection of demonstration scripts showcasing SQL Se
 ### Demo 3: Performance Correlation Between SQL Server and Pure Storage
 - Combining FlashArray metrics with SQL Server DMVs
 - Correlating storage performance with database performance
-- Visualizing I/O patterns and latencies
 - Identifying bottlenecks across the storage stack
 
 ### Demo 4: External Tables for Embedding Storage

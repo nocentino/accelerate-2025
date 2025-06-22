@@ -303,8 +303,8 @@ CREATE VECTOR INDEX vec_idx ON dbo.PostEmbeddings_2022_AndLater([Embedding])
 WITH (
     metric = 'cosine',
     type = 'diskann',
-    maxdop = 8
-);
+    maxdop = 16
+) ON EmbeddingsFileGroup; -- Specify the filegroup for the index;
 GO
 
 ------------------------------------------------------------
@@ -335,36 +335,32 @@ WHERE
     pe.Embedding IS NOT NULL 
 ORDER BY 
     SimilarityScore ASC;
-
-
-
-------------------------------------------------------------
--- Step 13: Clean up resources (for demo purposes)
-------------------------------------------------------------
--- Drop external table resources
-DROP EXTERNAL TABLE PostEmbeddingsExternal;
-DROP EXTERNAL DATA SOURCE ExternalStorageSource;
-DROP EXTERNAL FILE FORMAT ParquetFileFormat;
-DROP DATABASE SCOPED CREDENTIAL ExternalStorageCredential;
-DROP MASTER KEY;
-
--- Drop all year-based external tables
-DECLARE @StartYear INT = 2008;
-DECLARE @EndYear INT = YEAR(GETDATE());
-DECLARE @Year INT = @StartYear;
-DECLARE @SQL NVARCHAR(MAX);
-
-WHILE @Year <= @EndYear
-BEGIN
-    -- Generate the DROP EXTERNAL TABLE statement for the current year
-    SET @SQL = N'DROP EXTERNAL TABLE PostEmbeddings_' + CAST(@Year AS NVARCHAR(4)) + N';';
-
-    -- Execute the DROP statement
-    EXEC sp_executesql @SQL;
-
-    -- Move to the next year
-    SET @Year = @Year + 1;
-    PRINT 'Dropped external table for year ' + CAST(@Year - 1 AS NVARCHAR(4));
-END;
 GO
+
+DECLARE @QueryText NVARCHAR(MAX) = N'Find me posts about issuses with SQL Server performance'; --<---this is intentionally misspelled to highlight the similarity search
+DECLARE @QueryEmbedding VECTOR(768);
+
+-- Step 1: Generate embedding for the query text using a pre-trained model
+SET @QueryEmbedding = AI_GENERATE_EMBEDDINGS(@QueryText USE MODEL ollama);
+
+SELECT 
+    p.Id, 
+    p.Title, 
+    pe.Embedding,
+    s.distance AS SimilarityScore
+FROM 
+    VECTOR_SEARCH(
+        TABLE = dbo.PostEmbeddings_2022_AndLater AS pe,   -- Table containing vector embeddings
+        COLUMN = Embedding,                 -- Column storing the vector embeddings
+        SIMILAR_TO = @QueryEmbedding,       -- Query embedding to compare against
+        METRIC = 'cosine',                  -- Similarity metric (cosine distance)
+        TOP_N = 10                          -- Number of nearest neighbors to retrieve
+    ) AS s
+JOIN 
+    dbo.Posts p ON p.Id = pe.PostID         -- Join with Posts table to get post details
+WHERE 
+    pe.Embedding IS NOT NULL                 -- Ensure the embeddings column is checked
+    and p.CreationDate >= '2022-01-01'       -- Filter for recent posts
+ORDER BY 
+    s.distance;                             -- Lower distance indicates higher similarity
 
