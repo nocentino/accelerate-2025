@@ -23,32 +23,6 @@ accelerate-2025/
 ## Session - Accelerate Enterprise AI with Your SQL and Oracle Operational Databases
 
 ### Demo 2: Exploring Embeddings and Storage in SQL Server - [Video](https://youtu.be/lS3gzzG2rMs) | [Code](enterprise-ai-for-operational-databases/demo2.sql)
-- Creating tables to store vector embeddings for StackOverflow posts
-- Setting up dedicated filegroups for embedding data
-- Generating embeddings with `AI_GENERATE_EMBEDDINGS`
-- Performing similarity searches using vector distance functions
-- Leveraging Pure Storage's data reduction for embeddings (3.5:1 average)
-
-### Demo 3: Using Change Events to Drive AI Outcomes - [Video](https://youtu.be/-D1nHtjWM5w) | [Code](enterprise-ai-for-operational-databases/demo3.sql)
-- Implementing Change Tracking to detect modified data
-- Creating stored procedures to automatically update embeddings when source data changes
-- Maintaining synchronization logs to track change versions
-- Benefiting from Pure Storage's performance for real-time AI updates
-
-### Demo 4: Using External Tables to Store Embeddings - [Video](https://youtu.be/5nJ0gi1KW4U) | [Code](enterprise-ai-for-operational-databases/demo4.sql)
-- Configuring S3-compatible object storage with Pure FlashBlade
-- Implementing data tiering strategies for embeddings
-- Creating external tables for historical data
-- Optimizing recent data access with in-database storage
-- Providing a unified view across all data sources
-- Vector indexing for optimized search performance
-- Year-based partitioning for efficient data management
-
-## Session - SQL Server 2025 & Pure Storage: AI, Performance, and Pure Storage Optimization
-
-## Session - Accelerate Enterprise AI with Your SQL and Oracle Operational Databases
-
-### Demo 2: Exploring Embeddings and Storage in SQL Server - [Video](https://youtu.be/lS3gzzG2rMs) | [Code](enterprise-ai-for-operational-databases/demo2.sql)
 This demo explores the implementation of vector storage in SQL Server using StackOverflow data. It walks through creating dedicated filegroups for embedding data and demonstrates how to generate vector embeddings using the `AI_GENERATE_EMBEDDINGS` function. The session shows practical similarity searches using vector distance functions while highlighting how Pure Storage achieves impressive data reduction ratios of approximately for these embedding workloads.
 
 ### Demo 3: Using Change Events to Drive AI Outcomes - [Video](https://youtu.be/-D1nHtjWM5w) | [Code](enterprise-ai-for-operational-databases/demo3.sql)
