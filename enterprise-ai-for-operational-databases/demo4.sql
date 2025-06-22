@@ -166,13 +166,13 @@ GO
     Pure Storage's high-performance flash storage enables fast access to recent,
     frequently-accessed data while older data remains accessible on FlashBlade.
 */
-CREATE TABLE dbo.PostEmbeddings_2022_AndLater
-(
-    PostID INT PRIMARY KEY CLUSTERED,
-    Embedding VECTOR(768), 
-    CreatedAt DATETIME2,
-    UpdatedAt DATETIME2
-) ON EmbeddingsFileGroup; -- Specify the filegroup;
+CREATE TABLE dbo.PostEmbeddings_2022_AndLater (
+    PostID INT NOT NULL PRIMARY KEY CLUSTERED,      -- Foreign key to Posts table
+    Embedding VECTOR(768) NOT NULL,                 -- Vector embeddings (768 dimensions)
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),  -- Timestamp for when the embedding was created
+    UpdatedAt DATETIME NULL                         -- Timestamp for when the embedding was last updated
+) ON EmbeddingsFileGroup;                           -- Specify the filegroup
+GO
 
 /*
     Copy recent records from the original table.
@@ -184,9 +184,11 @@ SELECT PostID, Embedding, CreatedAt, UpdatedAt
 FROM dbo.PostEmbeddings pe INNER JOIN dbo.Posts p ON pe.PostID = p.Id
 WHERE p.CreationDate >= '2022-01-01';
 
+
 -- After migration, drop the original table that contained all data
 DROP TABLE dbo.PostEmbeddings;
 GO
+
 
 --Rename the new table to the original name for compatibility
 EXEC sp_rename 'dbo.PostEmbeddings_2022_AndLater', 'PostEmbeddings';
@@ -302,7 +304,7 @@ GO
     Pure Storage's high IOPS capabilities enable efficient creation and
     maintenance of compute-intensive vector indexes.
 */
-CREATE VECTOR INDEX vec_idx ON dbo.PostEmbeddings_2022_AndLater([Embedding])
+CREATE VECTOR INDEX vec_idx ON dbo.PostEmbeddings[Embedding])
 WITH (
     metric = 'cosine',
     type = 'diskann',
@@ -312,8 +314,23 @@ GO
 
 ------------------------------------------------------------
 -- Step 12: Test semantic search performance
--- CHANGE CONNECTION TO AEN-SQL-25-B BEFORE RUNNING THIS
+-- CHANGE CONNECTION TO AEN-SQL-25-B BEFORE RUNNING THIS, the index is pre-built on that server.
+--
+-- Verify the vector index creation
+-- This query retrieves the vector index details for the PostEmbeddings table
 ------------------------------------------------------------
+SELECT 
+    vi.obj_id,
+    vi.index_id,
+    vi.index_type,
+    vi.dist_metric
+FROM 
+    sys.indexes i 
+INNER JOIN
+    sys.vector_indexes as vi ON vi.obj_id = i.object_id AND vi.index_id = i.index_id
+WHERE 
+    obj_id = object_id('[dbo].[PostEmbeddings]')
+
 /*
     Perform a similarity search across all data.
     Pure Storage's architecture ensures consistent performance for complex
@@ -353,17 +370,17 @@ SELECT
     s.distance AS SimilarityScore
 FROM 
     VECTOR_SEARCH(
-        TABLE = dbo.PostEmbeddings_2022_AndLater AS pe,   -- Table containing vector embeddings
-        COLUMN = Embedding,                 -- Column storing the vector embeddings
-        SIMILAR_TO = @QueryEmbedding,       -- Query embedding to compare against
-        METRIC = 'cosine',                  -- Similarity metric (cosine distance)
-        TOP_N = 10                          -- Number of nearest neighbors to retrieve
+        TABLE = dbo.PostEmbeddings AS pe,  -- Table containing vector embeddings
+        COLUMN = Embedding,                -- Column storing the vector embeddings
+        SIMILAR_TO = @QueryEmbedding,      -- Query embedding to compare against
+        METRIC = 'cosine',                 -- Similarity metric (cosine distance)
+        TOP_N = 10                         -- Number of nearest neighbors to retrieve
     ) AS s
 JOIN 
-    dbo.Posts p ON p.Id = pe.PostID         -- Join with Posts table to get post details
+    dbo.Posts p ON p.Id = pe.PostID        -- Join with Posts table to get post details
 WHERE 
-    pe.Embedding IS NOT NULL                 -- Ensure the embeddings column is checked
-    and p.CreationDate >= '2022-01-01'       -- Filter for recent posts
+    pe.Embedding IS NOT NULL               -- Ensure the embeddings column is checked
+    and p.CreationDate >= '2022-01-01'     -- Filter for recent posts
 ORDER BY 
-    s.distance;                             -- Lower distance indicates higher similarity
+    s.distance;                            -- Lower distance indicates higher similarity
 
