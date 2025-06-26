@@ -104,34 +104,13 @@ BEGIN TRY
         "source_names": "aen-sql-25-a-pg",
         "replicate_now": true,
         "tags": [
-            {
-                "copyable": true,
-                "key": "DatabaseName",
-                "value": "' + @DatabaseName + '"
-            },
-            {
-                "copyable": true,
-                "key": "SQLInstanceName",
-                "value": "' + @InstanceName + '"
-            },
-            {
-                "copyable": true,
-                "key": "BackupTimestamp",
-                "value": "' + @DateStamp + '"
-            },
-            {
-                "copyable": true,
-                "key": "BackupType",
-                "value": "' + @BackupType + '"
-            },
-            {
-                "copyable": true,
-                "key": "BackupUrl",
-                "value": "' + @BackupUrl + '"
-            }
+            {"copyable": true, "key": "DatabaseName", "value": "' + @DatabaseName + '"},
+            {"copyable": true, "key": "SQLInstanceName", "value": "' + @InstanceName + '"},
+            {"copyable": true, "key": "BackupTimestamp", "value": "' + @DateStamp + '"},
+            {"copyable": true, "key": "BackupType", "value": "' + @BackupType + '"},
+            {"copyable": true, "key": "BackupUrl", "value": "' + @BackupUrl + '"}
         ]
     }';
-
     PRINT 'Payload: ' + @Payload;
 
     EXEC @ret = sp_invoke_external_rest_endpoint
@@ -186,8 +165,12 @@ BEGIN CATCH
 END CATCH
 
 
-ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF
-PRINT 'Database unsuspended after successful operation'
+IF (DATABASEPROPERTYEX('TPCC-4T', 'IsDatabaseSuspendedForSnapshotBackup') = 1)
+    BEGIN
+        ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF
+        PRINT 'Database unsuspended after successful operation'
+    END
+    
 
 ------------------------------------------------------------
 -- Step 7: Review SQL Server error logs to verify operation
