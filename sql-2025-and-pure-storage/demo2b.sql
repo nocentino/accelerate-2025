@@ -21,8 +21,8 @@ DECLARE @ret INT, @response NVARCHAR(MAX), @AuthToken NVARCHAR(100), @MyHeaders 
     Pure Storage's RESTful API enables seamless integration with SQL Server for automated operations.
 */
 EXEC @ret = sp_invoke_external_rest_endpoint
-    @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/login',
-    @headers = N'{"api-token":"3b078aa4-94a8-68da-8e7b-04aec357f678"}',
+    @url = N'https://sn1-x90r2-f06-27.puretec.purestorage.com/api/2.44/login',
+    @headers = N'{"api-token":"6a20f30a-2c4b-90eb-ada3-bcae602637a8"}',
     @response = @response OUTPUT;
 
 PRINT 'Login Return Code: ' + CAST(@ret AS NVARCHAR(10))
@@ -59,7 +59,7 @@ PRINT 'Headers: ' + @MyHeaders
 
 
 DECLARE @ProtectionGroup NVARCHAR(255) = 'aen-sql-25-a-pg';
-DECLARE @APIEndpoint NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots';
+DECLARE @APIEndpoint NVARCHAR(MAX) = N'https://sn1-x90r2-f06-27.puretec.purestorage.com/api/2.44/protection-group-snapshots';
 DECLARE @TagFilter NVARCHAR(MAX)   = N'?filter=tags(''default'',''SQLInstanceName'')=''aen-sql-25-a'' and tags(''default'',''DatabaseName'')=''TPCC-4T''&sort=created-';
 DECLARE @FullUrl NVARCHAR(MAX) = @APIEndpoint + @TagFilter;
 EXEC @ret = sp_invoke_external_rest_endpoint
@@ -84,7 +84,7 @@ PRINT 'Most Recent Snapshot Name: ' + @MostRecentSnapshotName;
     Pure Storage's comprehensive tagging system allows SQL Server to maintain
     a complete record of backup details without needing additional tables or tracking.
 */
-DECLARE @SnapshotUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/protection-group-snapshots/tags?resource_names=' + @MostRecentSnapshotName;
+DECLARE @SnapshotUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-27.puretec.purestorage.com/api/2.44/protection-group-snapshots/tags?resource_names=' + @MostRecentSnapshotName;
 EXEC @ret = sp_invoke_external_rest_endpoint
     @url = @SnapshotUrl,
     @headers = @MyHeaders,
