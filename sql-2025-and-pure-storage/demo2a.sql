@@ -30,9 +30,9 @@ BEGIN TRY
         Pure Storage's RESTful API enables seamless integration with SQL Server for automated operations.
     */
     EXEC @ret = sp_invoke_external_rest_endpoint
-        @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/login',
-        @headers = N'{"api-token":"3b078aa4-94a8-68da-8e7b-04aec357f678"}',         -- In production, API tokens should be stored securely, not hardcoded
-        @response = @response OUTPUT;
+         @url = N'https://sn1-x90r2-f06-33.puretec.purestorage.com/api/2.44/login',
+         @headers = N'{"api-token":"3b078aa4-94a8-68da-8e7b-04aec357f678"}',         -- In production, API tokens should be stored securely, not hardcoded
+         @response = @response OUTPUT;
 
     PRINT 'Login Return Code: ' + CAST(@ret AS NVARCHAR(10))
     
@@ -91,15 +91,13 @@ BEGIN TRY
         We are also replicating the snapshot immediately by setting "replicate_now" to true to another array.
     */
     -- Generate dynamic filename with instance name, database name, backup type and date
-    DECLARE @InstanceName NVARCHAR(128) = REPLACE(@@SERVERNAME, '\', '_');
-    DECLARE @DatabaseName NVARCHAR(128) = 'TPCC-4T';
-    DECLARE @BackupType NVARCHAR(20) = 'SNAPSHOT';
-    DECLARE @DateStamp NVARCHAR(20) = REPLACE(CONVERT(NVARCHAR, GETDATE(), 112) + '_' + REPLACE(CONVERT(NVARCHAR, GETDATE(), 108), ':', ''), ' ', '_');
+    DECLARE @InstanceName   NVARCHAR(128) = REPLACE(@@SERVERNAME, '\', '_');
+    DECLARE @DatabaseName   NVARCHAR(128) = 'TPCC-4T';
+    DECLARE @BackupType     NVARCHAR(20)  = 'SNAPSHOT';
+    DECLARE @DateStamp      NVARCHAR(20)  = REPLACE(CONVERT(NVARCHAR, GETDATE(), 112) + '_' + REPLACE(CONVERT(NVARCHAR, GETDATE(), 108), ':', ''), ' ', '_');
     DECLARE @BackupFileName NVARCHAR(255) = @InstanceName + '_' + @DatabaseName + '_' + @BackupType + '_' + @DateStamp + '.bkm';
-    DECLARE @BackupUrl NVARCHAR(512) = 's3://s200.fsa.lab/aen-sql-backups/' + @BackupFileName;
-
-    -- Update the protection-group-snapshot with comprehensive tags
-    DECLARE @Payload NVARCHAR(MAX);
+    DECLARE @BackupUrl      NVARCHAR(512) = 's3://s200.fsa.lab/aen-sql-backups/' + @BackupFileName;
+    DECLARE @Payload        NVARCHAR(MAX);
 
     -- Build a comprehensive payload with all important backup values
     SET @Payload = N'{  
@@ -183,6 +181,8 @@ END TRY
 BEGIN CATCH
     SET @ErrorMessage = ERROR_MESSAGE()
     PRINT 'Error: ' + @ErrorMessage
+    ALTER DATABASE [TPCC-4T] SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF
+    PRINT 'Database unsuspended after unsuccessful operation'
 END CATCH
 
 
