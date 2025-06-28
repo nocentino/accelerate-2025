@@ -1,6 +1,7 @@
--- Demo 2b: Retrieving and Managing FlashArray Snapshots via REST
+-- Demo 2b: Retrieving and Managing FlashArray Snapshots via REST (Improved & Simplified)
 -- This demo showcases SQL Server 2025's ability to query and use existing Pure Storage FlashArray snapshots
 -- This is not a production script, but rather a demonstration of the capabilities of SQL Server 2025 and Pure Storage FlashArray integration.
+
 /*
 PREREQUISITES:
 - SQL Server 2025 or later
@@ -11,105 +12,71 @@ PREREQUISITES:
 */
 
 ------------------------------------------------------------
--- Step 1: Get a listing of all snapshots in the protection group by database names
+-- Step 1: Configuration and Authentication
 ------------------------------------------------------------
+-- Configuration variables (customize these for your environment)
+DECLARE @ArrayUrl        NVARCHAR(255) = N'https://sn1-x90r2-f06-27.puretec.purestorage.com/api/2.44'; -- Pure Storage API URL
+DECLARE @ApiToken        NVARCHAR(255) = N'6a20f30a-2c4b-90eb-ada3-bcae602637a8'; -- Store securely in production
+DECLARE @ProtectionGroup NVARCHAR(255) = N'aen-sql-25-a-pg';
+DECLARE @InstanceFilter  NVARCHAR(128) = N'aen-sql-25-a';
+DECLARE @DatabaseFilter  NVARCHAR(128) = N'TPCC-4T';
 
--- Increase variable sizes to handle larger tokens and responses
+-- Working variables
 DECLARE @ret INT, @response NVARCHAR(MAX), @AuthToken NVARCHAR(MAX), @MyHeaders NVARCHAR(MAX);
-DECLARE @ErrorMessage NVARCHAR(MAX);
 
 BEGIN TRY
-    /*
-        Using an API token with read/write permissions in the array, connect to the array to log in.
-        This login call will return an x-auth-token which is used for the duration of your session with the array as the authentication token.
-        Pure Storage's RESTful API enables seamless integration with SQL Server for automated operations.
-    */
+    PRINT 'Authenticating with Pure Storage FlashArray...'
+    
     EXEC @ret = sp_invoke_external_rest_endpoint
          @url = N'https://sn1-x90r2-f06-27.puretec.purestorage.com/api/2.44/login',
          @headers = N'{"api-token":"6a20f30a-2c4b-90eb-ada3-bcae602637a8"}',
          @response = @response OUTPUT;
 
-    PRINT 'Login Return Code: ' + CAST(@ret AS NVARCHAR(10))
-    
-    -- Check for login success
     IF (@ret <> 0)
-    BEGIN
-        SET @ErrorMessage = 'Error in REST call, unable to login to the array. Return code: ' + CAST(@ret AS NVARCHAR(10))
-        RAISERROR(@ErrorMessage, 16, 1)
-        RETURN
-    END
+        THROW 50001, 'Failed to authenticate with Pure Storage array', 1;
+    
+    PRINT 'Authentication successful'
 
     ------------------------------------------------------------
-    -- Step 2: Extract authentication token for subsequent operations
+    -- Step 2: Extract authentication token and query snapshots
     ------------------------------------------------------------
-    /*
-        First, read the x-auth-token from the login response from the array
-        Then, build the header to be passed into the next REST call in the array.
-        Pure's token-based authentication enables secure automation.
-    */
     SET @AuthToken = JSON_VALUE(@response, '$.response.headers."x-auth-token"');
     
-    -- Verify token extraction was successful
     IF (@AuthToken IS NULL)
-    BEGIN
-        RAISERROR('Failed to extract authentication token from response', 16, 1)
-        RETURN
-    END
+        THROW 50002, 'Failed to extract authentication token from response', 1;
     
     SET @MyHeaders = N'{"x-auth-token":"' + @AuthToken + '", "Content-Type":"application/json"}'
 
-    /*
-        Query snapshots filtered by SQL instance and database name via the Pure Storage REST API.
-        Pure Storage's rich tagging system enables precise filtering and management of snapshots
-        across large environments, making it easy to find relevant backups.
-    */
-    DECLARE @ProtectionGroup NVARCHAR(255) = 'aen-sql-25-a-pg';
-    DECLARE @APIEndpoint     NVARCHAR(MAX) = N'https://sn1-x90r2-f06-27.puretec.purestorage.com/api/2.44/protection-group-snapshots';
-    DECLARE @TagFilter       NVARCHAR(MAX) = N'?filter=tags(''default'',''SQLInstanceName'')=''aen-sql-25-a'' and tags(''default'',''DatabaseName'')=''TPCC-4T''&sort=created-';
-    DECLARE @FullUrl         NVARCHAR(MAX) = @APIEndpoint + @TagFilter;
+    PRINT 'Querying snapshots for database: ' + @DatabaseFilter
     
+    -- Build filtered query URL
+    DECLARE @TagFilter  NVARCHAR(MAX) = N'?filter=tags(''default'',''SQLInstanceName'')=''' + @InstanceFilter + ''' and tags(''default'',''DatabaseName'')=''' + @DatabaseFilter + '''&sort=created-';
+    DECLARE @FullUrl    NVARCHAR(MAX) = N'https://sn1-x90r2-f06-27.puretec.purestorage.com/api/2.44/protection-group-snapshots' + @TagFilter;
+
     EXEC @ret = sp_invoke_external_rest_endpoint
         @url = @FullUrl,
         @headers = @MyHeaders,
         @method = N'GET', 
         @response = @response OUTPUT;
-        
-    -- Check for successful API call
+
     IF (@ret <> 0)
-    BEGIN
-        SET @ErrorMessage = 'Error retrieving snapshots. Return code: ' + CAST(@ret AS NVARCHAR(10))
-        RAISERROR(@ErrorMessage, 16, 1)
-        RETURN
-    END
+        THROW 50003, 'Failed to retrieve snapshots from Pure Storage array', 1;
 
-    -- Check if we have valid results in the response
+    -- Verify we have results
     IF (JSON_VALUE(@response, '$.result.total_item_count') = '0' OR JSON_VALUE(@response, '$.result.items[0].name') IS NULL)
-    BEGIN
-        RAISERROR('No matching snapshots found with the specified criteria', 16, 1)
-        RETURN
-    END
+        THROW 50004, 'No matching snapshots found with the specified criteria', 1;
 
-    /*
-        Extract the most recent snapshot name from the response.
-        Pure Storage's well-structured JSON API enables simple extraction of 
-        snapshot metadata using SQL Server's built-in JSON functions.
-    */
-    DECLARE @MostRecentSnapshotName NVARCHAR(255);
-    SET @MostRecentSnapshotName = JSON_VALUE(@response, '$.result.items[0].name');
+    ------------------------------------------------------------
+    -- Step 3: Extract most recent snapshot and get detailed tags
+    ------------------------------------------------------------
+    DECLARE @MostRecentSnapshotName NVARCHAR(255) = JSON_VALUE(@response, '$.result.items[0].name');
     
     IF (@MostRecentSnapshotName IS NULL)
-    BEGIN
-        RAISERROR('Failed to extract snapshot name from response', 16, 1)
-        RETURN
-    END
+        THROW 50005, 'Failed to extract snapshot name from response', 1;
     
-    PRINT 'Most Recent Snapshot Name: ' + @MostRecentSnapshotName;
+    PRINT 'Most Recent Snapshot: ' + @MostRecentSnapshotName;
 
-    /*
-        Retrieve detailed tag information for the selected snapshot.
-        Pure Storage's comprehensive tagging system allows SQL Server to maintain
-        a complete record of backup details without needing additional tables or tracking.
-    */
+    -- Get detailed tag information for the snapshot
     DECLARE @SnapshotUrl NVARCHAR(MAX) = N'https://sn1-x90r2-f06-27.puretec.purestorage.com/api/2.44/protection-group-snapshots/tags?resource_names=' + @MostRecentSnapshotName;
     
     EXEC @ret = sp_invoke_external_rest_endpoint
@@ -118,29 +85,20 @@ BEGIN TRY
         @method = N'GET',
         @response = @response OUTPUT;
         
-    -- Check for successful API call
     IF (@ret <> 0)
-    BEGIN
-        SET @ErrorMessage = 'Error retrieving snapshot tags. Return code: ' + CAST(@ret AS NVARCHAR(10))
-        RAISERROR(@ErrorMessage, 16, 1)
-        RETURN
-    END
+        THROW 50006, 'Failed to retrieve snapshot tags from Pure Storage array', 1;
 
-    -- Check if response contains items
     IF (JSON_QUERY(@response, '$.result.items') IS NULL)
-    BEGIN
-        RAISERROR('No tags found for the specified snapshot', 16, 1)
-        RETURN
-    END
+        THROW 50007, 'No tags found for the specified snapshot', 1;
 
-    /*
-        Parse the snapshot tags response to show all tag information.
-        Pure Storage's comprehensive tagging system provides rich metadata
-        for each snapshot, enabling advanced filtering and management.
-    */
+    ------------------------------------------------------------
+    -- Step 4: Display snapshot tags and extract backup URL
+    ------------------------------------------------------------
+    PRINT 'Snapshot tag information:'
+    
+    -- Parse and display tags in a pivoted format
     DECLARE @items NVARCHAR(MAX) = JSON_QUERY(@response, '$.result.items');
 
-    -- Display tags in a pivoted format
     WITH Flattened AS (
         SELECT 
             JSON_VALUE(item.value, '$.context.name') AS ContextName,
@@ -168,50 +126,39 @@ BEGIN TRY
         )
     ) AS PivotTable;
 
-    /*
-        Extract the backup URL from the snapshot tags.
-        Pure Storage's tag-based metadata enables seamless integration between
-        the storage snapshot and SQL Server's metadata-only backup file.
-    */
+    -- Extract the backup URL from the snapshot tags
     DECLARE @SnapshotBackupUrl NVARCHAR(512);
 
-    -- Extract the backup URL in a simpler way
     SELECT @SnapshotBackupUrl = JSON_VALUE(item.value, '$.value')
     FROM OPENJSON(@response, '$.result.items') AS item
     WHERE JSON_VALUE(item.value, '$.key') = 'BackupUrl';
 
-    -- Check if backup URL was found
     IF (@SnapshotBackupUrl IS NULL)
-    BEGIN
-        RAISERROR('BackupUrl tag not found for the specified snapshot', 16, 1)
-        RETURN
-    END
+        THROW 50008, 'BackupUrl tag not found for the specified snapshot', 1;
 
     PRINT 'Backup URL: ' + @SnapshotBackupUrl;
 
     ------------------------------------------------------------
-    -- Step 3: Verify backup metadata by reading backup header
+    -- Step 5: Verify backup metadata by reading backup header
     ------------------------------------------------------------
-    /*
-        Read the backup header from the metadata-only backup file.
-        This completes the integration between Pure Storage snapshots and 
-        SQL Server's native backup catalog, enabling standard backup management
-        tools to work seamlessly with Pure's high-performance snapshots.
-    */
     PRINT 'Reading backup header from: ' + @SnapshotBackupUrl;
     
-    -- Use TRY/CATCH for RESTORE operation
     BEGIN TRY
         RESTORE HEADERONLY FROM URL = @SnapshotBackupUrl;
+        PRINT 'Backup header read successfully'
     END TRY
     BEGIN CATCH
-        SET @ErrorMessage = 'Error reading backup header: ' + ERROR_MESSAGE()
-        RAISERROR(@ErrorMessage, 16, 1)
+        DECLARE @BackupError NVARCHAR(4000) = 'Error reading backup header: ' + ERROR_MESSAGE();
+        THROW 50009, @BackupError, 1;
     END CATCH
 
 END TRY
 BEGIN CATCH
-    SET @ErrorMessage = ERROR_MESSAGE()
-    PRINT 'Error: ' + @ErrorMessage
+    DECLARE @ErrorMsg NVARCHAR(4000) = ERROR_MESSAGE();
+    DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+    DECLARE @ErrorState INT = ERROR_STATE();
+    
+    PRINT 'Error occurred: ' + @ErrorMsg
+    RAISERROR(@ErrorMsg, @ErrorSeverity, @ErrorState);
 END CATCH
 GO
